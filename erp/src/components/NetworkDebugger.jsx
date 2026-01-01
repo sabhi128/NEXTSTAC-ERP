@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext'; // Import Auth
 
 const NetworkDebugger = () => {
+    const { user, logout } = useAuth(); // Get user state
     const [healthStatus, setHealthStatus] = useState('Checking...');
     const [envVars, setEnvVars] = useState({});
     const [isVisible, setIsVisible] = useState(true);
@@ -47,6 +49,14 @@ const NetworkDebugger = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <strong>🐞 Vercel Debugger</strong>
                 <button onClick={() => setIsVisible(false)}>X</button>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+                <strong>Current User:</strong>
+                <div style={{ color: user ? '#fbbf24' : '#94a3b8' }}>
+                    {user ? `${user.name} (${user.role})` : 'Not Logged In'}
+                </div>
+                {user && <button onClick={logout} style={{ marginTop: 5, padding: '2px 5px', background: '#f87171', border: 'none', borderRadius: 4, color: 'white', cursor: 'pointer' }}>Force Logout</button>}
             </div>
 
             <div style={{ marginBottom: '10px' }}>

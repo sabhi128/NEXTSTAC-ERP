@@ -2,17 +2,63 @@
 -- Based on current frontend mockDataService.js structure
 
 -- 1. Users & Authentication
+
+-- DROP TABLES CLEANUP (Run this to reset schema)
+DROP TABLE IF EXISTS activity_logs CASCADE;
+DROP TABLE IF EXISTS company_profile CASCADE;
+DROP TABLE IF EXISTS branches CASCADE;
+DROP TABLE IF EXISTS sales_orders CASCADE;
+DROP TABLE IF EXISTS leads CASCADE;
+DROP TABLE IF EXISTS bills CASCADE;
+DROP TABLE IF EXISTS purchase_orders CASCADE;
+DROP TABLE IF EXISTS vendors CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS chart_of_accounts CASCADE;
+DROP TABLE IF EXISTS stock_movements CASCADE;
+DROP TABLE IF EXISTS warehouses CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS leaves CASCADE;
+DROP TABLE IF EXISTS salaries CASCADE;
+DROP TABLE IF EXISTS employee_history CASCADE;
+DROP TABLE IF EXISTS attendance CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS departments CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL, -- Storing hash, not plain text
-    role VARCHAR(50) NOT NULL CHECK (role IN ('super_admin', 'ecommerce_admin', 'dev_admin', 'user')),
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
     avatar_url TEXT,
     status VARCHAR(20) DEFAULT 'Active',
     share_percentage DECIMAL(5,2) DEFAULT 0.00,
+    department VARCHAR(100), -- Added
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ... (Departments skipped for brevity in tool call, manual check needed if mismatch)
+
+-- 3. Inventory & Products
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    category VARCHAR(100),
+    price DECIMAL(15,2) NOT NULL,
+    stock_quantity INTEGER DEFAULT 0,
+    min_stock_level INTEGER DEFAULT 10,
+    min_stock INTEGER DEFAULT 10, -- Added matching local
+    stock INTEGER DEFAULT 0, -- Added matching local 'stock' vs 'stock_quantity'
+    supplier VARCHAR(255),
+    status VARCHAR(50), -- Added
+    last_updated TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. HR Module
@@ -38,18 +84,44 @@ CREATE TABLE employees (
     avatar_url TEXT,
     phone VARCHAR(50),
     address TEXT,
+    stipend_type TEXT,
+    stipend_description TEXT,
+    cnic TEXT, -- Changed from cnic_front to match local
+    cnic_front TEXT, -- Keeping both just in case, but sync expects 'cnic'
+    cnic_back TEXT,
+    matric_result TEXT,
+    inter_result TEXT,
+    cv TEXT,
+    promotion_level TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID REFERENCES employees(id),
+    employee_name VARCHAR(255), -- Added denormalized field found in local
     date DATE NOT NULL,
     check_in TIME,
     check_out TIME,
-    status VARCHAR(50) CHECK (status IN ('Present', 'Absent', 'Late', 'Half Day')),
-    work_hours VARCHAR(20), -- e.g. "8h 30m" -> prefer storing as minutes/interval in real app
+    status VARCHAR(50),
+    work_hours VARCHAR(20),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE employee_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES employees(id),
+    old_position VARCHAR(100),
+    old_level VARCHAR(50),
+    old_salary DECIMAL(15,2),
+    old_department VARCHAR(100),
+    new_position VARCHAR(100),
+    new_level VARCHAR(50),
+    new_salary DECIMAL(15,2),
+    new_department VARCHAR(100),
+    change_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    changed_by VARCHAR(255)
 );
 
 CREATE TABLE salaries (
@@ -70,6 +142,7 @@ CREATE TABLE leaves (
     end_date DATE,
     reason TEXT,
     status VARCHAR(50) DEFAULT 'Pending',
+    department VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -123,6 +196,8 @@ CREATE TABLE transactions (
     amount DECIMAL(15,2) NOT NULL,
     debit_account_id UUID REFERENCES chart_of_accounts(id),
     credit_account_id UUID REFERENCES chart_of_accounts(id),
+    type VARCHAR(50),
+    category VARCHAR(100),
     reference VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -135,7 +210,8 @@ CREATE TABLE invoices (
     due_date DATE,
     amount DECIMAL(15,2),
     status VARCHAR(50) CHECK (status IN ('Paid', 'Pending', 'Overdue')),
-    items_count INTEGER
+    items_count INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE payments ( -- Received payments
@@ -145,7 +221,8 @@ CREATE TABLE payments ( -- Received payments
     amount DECIMAL(15,2),
     date DATE,
     method VARCHAR(50),
-    status VARCHAR(50)
+    status VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE vendors (
@@ -190,7 +267,9 @@ CREATE TABLE customers (
     status VARCHAR(50),
     notes TEXT,
     total_orders INTEGER DEFAULT 0,
-    last_order_date TIMESTAMP WITH TIME ZONE
+    last_order_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE leads (

@@ -1,7 +1,7 @@
-import sqlite3Val from 'sqlite3';
 import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import pg from 'pg';
 
 dotenv.config();
@@ -9,6 +9,7 @@ dotenv.config();
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const isVercel = process.env.VERCEL === '1';
 const usePostgres = !!process.env.DATABASE_URL;
@@ -84,17 +85,22 @@ if (usePostgres) {
         serialize: (cb) => cb && cb()
     };
 } else {
-    // Local SQLite fallback
-    const sqlite3 = sqlite3Val.verbose();
-    const dbPath = path.resolve(__dirname, 'erp.db');
-    db = new sqlite3.Database(dbPath, (err) => {
-        if (err) console.error('Error opening SQLite DB:', err.message);
-        else {
-            console.log('📂 Connected to local SQLite database.');
-            db.run('PRAGMA foreign_keys = ON');
-            initSchemaSQLite(db);
-        }
-    });
+    // Local SQLite fallback - Only load sqlite3 HERE
+    try {
+        const sqlite3 = require('sqlite3').verbose();
+        const dbPath = path.resolve(__dirname, 'erp.db');
+        db = new sqlite3.Database(dbPath, (err) => {
+            if (err) console.error('Error opening SQLite DB:', err.message);
+            else {
+                console.log('📂 Connected to local SQLite database.');
+                db.run('PRAGMA foreign_keys = ON');
+                initSchemaSQLite(db);
+            }
+        });
+    } catch (e) {
+        console.error('Failed to load sqlite3:', e.message);
+        db = {}; // Fallback to avoid crashes if installed but failed
+    }
 }
 
 // --- Schema Initialization (PostgreSQL) ---

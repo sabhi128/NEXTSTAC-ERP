@@ -21,6 +21,8 @@ import ConfirmationModal from '../../../components/ConfirmationModal';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import EmployeeDetailModal from '../components/EmployeeDetailModal';
+import EmployeeHistoryModal from '../components/EmployeeHistoryModal';
+import { History } from 'lucide-react';
 
 // UI Components
 import { Button } from '../../../components/ui/button';
@@ -45,6 +47,7 @@ export default function EmployeeList() {
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState(null);
+    const [viewingHistoryEmployee, setViewingHistoryEmployee] = useState(null);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
@@ -129,11 +132,11 @@ export default function EmployeeList() {
         setIsFormOpen(true);
     };
 
-    const handleFormSubmit = (formData) => {
+    const handleFormSubmit = async (formData) => {
         if (editingEmployee) {
-            updateEmployeeMutation.mutate({ id: editingEmployee.id, updates: formData });
+            await updateEmployeeMutation.mutateAsync({ id: editingEmployee.id, updates: formData });
         } else {
-            addEmployeeMutation.mutate(formData);
+            await addEmployeeMutation.mutateAsync(formData);
         }
     };
 
@@ -318,7 +321,18 @@ export default function EmployeeList() {
                                                     {employee.position}
                                                 </p>
                                             </div>
-                                            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                                {user?.role === 'super_admin' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl"
+                                                        onClick={() => setViewingHistoryEmployee(employee)}
+                                                        title="View History"
+                                                    >
+                                                        <History className="w-4 h-4" />
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -420,6 +434,18 @@ export default function EmployeeList() {
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
 
+                                                            {user?.role === 'super_admin' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+                                                                    onClick={() => setViewingHistoryEmployee(employee)}
+                                                                    title="View History"
+                                                                >
+                                                                    <History className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
@@ -512,6 +538,12 @@ export default function EmployeeList() {
                 isOpen={!!viewingEmployee}
                 onClose={() => setViewingEmployee(null)}
                 employee={viewingEmployee}
+            />
+
+            <EmployeeHistoryModal
+                isOpen={!!viewingHistoryEmployee}
+                onClose={() => setViewingHistoryEmployee(null)}
+                employee={viewingHistoryEmployee}
             />
 
             <ConfirmationModal

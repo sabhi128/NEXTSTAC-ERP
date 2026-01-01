@@ -321,6 +321,8 @@ export default function FileManager() {
                         {isSuperAdmin && file.status === 'Pending' ? (
                             <div className="flex items-center justify-between gap-2 pt-4 border-t border-amber-500/20">
                                 <Button
+                                    size="sm"
+                                    onClick={() => rejectMutation.mutate(file.id)}
                                     className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
                                     title="Reject"
                                 >

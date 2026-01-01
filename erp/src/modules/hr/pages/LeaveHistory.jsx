@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockDataService } from '../../../services/mockDataService';
-import { Search, Calendar, Filter, User, AlertCircle, FileText } from 'lucide-react';
-import { subDays, isAfter, parseISO } from 'date-fns';
+import { Search, Calendar, User, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { subDays, isAfter } from 'date-fns';
+import { Button } from '../../../components/ui/button';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function LeaveHistory() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
     const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
     const [periodFilter, setPeriodFilter] = useState('Yearly');
+
+    // Mutation for updating status
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ id, status }) => mockDataService.updateLeaveStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['employee-leaves', selectedEmployeeId]);
+        }
+    });
+
+    const handleAction = (id, status) => {
+        updateStatusMutation.mutate({ id, status });
+    };
 
     // 1. Fetch Employees for Dropdown
     const { data: employees } = useQuery({
@@ -136,6 +152,7 @@ export default function LeaveHistory() {
                                             <th className="px-6 py-4 font-bold text-slate-300">Dates</th>
                                             <th className="px-6 py-4 font-bold text-slate-300">Reason</th>
                                             <th className="px-6 py-4 font-bold text-slate-300">Status</th>
+                                            <th className="px-6 py-4 font-bold text-slate-300 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-700/30">
@@ -157,6 +174,34 @@ export default function LeaveHistory() {
                                                     <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${getStatusColor(record.status)}`}>
                                                         {record.status}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {user?.role !== 'user' && (
+                                                        <div className="flex justify-end gap-2">
+                                                            {(record.status === 'Pending' || record.status === 'Rejected') && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleAction(record.id, 'Approved')}
+                                                                    className="h-8 w-8 text-slate-400 hover:text-green-600 hover:bg-green-50"
+                                                                    title="Approve"
+                                                                >
+                                                                    <CheckCircle className="w-5 h-5" />
+                                                                </Button>
+                                                            )}
+                                                            {(record.status === 'Pending' || record.status === 'Approved') && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleAction(record.id, 'Rejected')}
+                                                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                                    title="Reject"
+                                                                >
+                                                                    <XCircle className="w-5 h-5" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

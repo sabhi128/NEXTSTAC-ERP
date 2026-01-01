@@ -16,7 +16,8 @@ import {
     LogOut,
     Bell,
     Shield,
-    Terminal
+    Terminal,
+    FileText
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -67,6 +68,12 @@ const NAV_ITEMS = [
             { label: 'Payroll', path: '/hr/payroll' },
             { label: 'Leave Requests', path: '/hr/leave' },
         ]
+    },
+    {
+        label: 'Employee Documents',
+        path: '/employee-documents',
+        icon: FileText,
+        roles: ['super_admin']
     },
     {
         label: 'Finance',

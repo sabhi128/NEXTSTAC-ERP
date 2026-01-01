@@ -15,21 +15,25 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const isVercel = process.env.VERCEL === '1';
+import supabase from '../supabaseClient.js'; // Ensure imported
+
 // Multer Config
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        // preserve extension
-        const ext = path.extname(file.originalname);
-        cb(null, `${Date.now()}-${uuidv4()}${ext}`);
-    }
-});
+const storage = isVercel
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname);
+            cb(null, `${Date.now()}-${uuidv4()}${ext}`);
+        }
+    });
 
 export const upload = multer({ storage });
 
-export const uploadFile = (req, res) => {
+export const uploadFile = async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -37,38 +41,89 @@ export const uploadFile = (req, res) => {
 
         const { uploadedBy } = req.body;
         // req.user is populated by verifySupabaseToken middleware
-        const userRole = req.user?.role || 'user';
+        // For strict role checking from DB if middleware didn't attach it fully?
+        // Middleware does attach req.user.role now.
+        const userRole = (req.user?.role || 'user').toLowerCase();
+
+        // Restriction: Only Admins can upload? User said "Restriction... not showing".
+        // Or maybe they mean the pending status logic?
+        // Current logic: Super Admin -> Approved, Others -> Pending.
         const status = userRole === 'super_admin' ? 'Approved' : 'Pending';
 
         const id = uuidv4();
         const name = req.file.originalname;
         const type = req.file.mimetype;
         const size = formatBytes(req.file.size);
-        const filePath = req.file.filename;
 
-        const sql = `INSERT INTO documents (id, name, type, size, path, uploaded_by, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        if (isVercel) {
+            // --- Vercel: Upload to Supabase Storage ---
+            if (!supabase) throw new Error('Supabase client not initialized');
 
-        db.run(sql, [id, name, type, size, filePath, uploadedBy || 'Admin', status], function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+            const filePath = `${id}-${name}`; // Unique path in bucket
+
+            // 1. Upload to Storage
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, req.file.buffer, {
+                    contentType: type,
+                    upsert: false
+                });
+
+            if (uploadError) throw new Error(`Storage Upload Failed: ${uploadError.message}`);
+
+            // 2. Insert Metadata into DB
+            const { error: dbError } = await supabase
+                .from('documents')
+                .insert([{
+                    id,
+                    name,
+                    type,
+                    size,
+                    path: filePath,
+                    uploaded_by: uploadedBy || req.user?.email || 'Unknown',
+                    status
+                }]);
+
+            if (dbError) throw new Error(`DB Insert Failed: ${dbError.message}`);
 
             logActivity(req, `Uploaded file (${status}): ${name}`, 'Documents');
 
-            res.status(201).json({
+            return res.status(201).json({
                 id,
                 name,
                 type,
                 size,
-                uploadedBy: uploadedBy || 'Admin',
+                uploadedBy: uploadedBy || req.user?.email,
                 status,
                 date: new Date().toISOString()
             });
-        });
+
+        } else {
+            // --- Local: SQLite + File System ---
+            const filePath = req.file.filename; // From DiskStorage
+
+            const sql = `INSERT INTO documents (id, name, type, size, path, uploaded_by, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+            db.run(sql, [id, name, type, size, filePath, uploadedBy || 'Admin', status], function (err) {
+                if (err) return res.status(500).json({ error: err.message });
+
+                logActivity(req, `Uploaded file (${status}): ${name}`, 'Documents');
+
+                res.status(201).json({
+                    id,
+                    name,
+                    type,
+                    size,
+                    uploadedBy: uploadedBy || 'Admin',
+                    status,
+                    date: new Date().toISOString()
+                });
+            });
+        }
 
     } catch (error) {
         console.error('Upload Error:', error);
-        res.status(500).json({ error: 'Failed to upload file' });
+        res.status(500).json({ error: 'Failed to upload file: ' + error.message });
     }
 };
 

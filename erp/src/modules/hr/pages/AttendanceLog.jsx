@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import {
     Calendar,
     Clock,
@@ -20,26 +20,24 @@ export default function AttendanceLog() {
     const queryClient = useQueryClient();
     const { data: attendance, isLoading } = useQuery({
         queryKey: ['attendance'],
-        queryFn: mockDataService.getAttendance,
+        queryFn: () => api.get('/hr/attendance'),
     });
 
     const { data: employees } = useQuery({
         queryKey: ['employees'],
-        queryFn: mockDataService.getEmployees,
+        queryFn: () => api.get('/hr/employees'),
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState(null);
 
     const updateAttendanceMutation = useMutation({
-        mutationFn: ({ id, updates }) => {
-            return new Promise(resolve => {
-                if (id) {
-                    setTimeout(() => resolve(mockDataService.updateAttendance(id, updates)), 300);
-                } else {
-                    setTimeout(() => resolve(mockDataService.addAttendance(updates)), 300);
-                }
-            });
+        mutationFn: async ({ id, updates }) => {
+            if (id) {
+                return api.put(`/hr/attendance/${id}`, updates);
+            } else {
+                return api.post('/hr/attendance', updates);
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['attendance']);

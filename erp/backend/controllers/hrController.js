@@ -18,7 +18,15 @@ export const getAllEmployees = async (req, res) => {
             phone: r.phone,
             address: r.address,
             joinDate: r.join_date || r.joinDate,
-            updatedAt: r.updated_at || r.updatedAt
+            updatedAt: r.updated_at || r.updatedAt,
+            stipendType: r.stipend_type || r.stipendType,
+            stipendDescription: r.stipend_description || r.stipendDescription,
+            cnicFront: r.cnic_front || r.cnicFront,
+            cnicBack: r.cnic_back || r.cnicBack,
+            matricResult: r.matric_result || r.matricResult,
+            interResult: r.inter_result || r.interResult,
+            cv: r.cv,
+            promotionLevel: r.promotion_level || r.promotionLevel
         }));
 
         const userRole = (req.user?.role || 'user').toLowerCase();
@@ -48,12 +56,14 @@ export const getEmployeeById = async (req, res) => {
             position: row.position,
             department: row.department_name || row.department,
             salary: row.salary,
+            stipendType: row.stipend_type || row.stipendType,
             status: row.status,
             avatar: row.avatar_url || row.avatar,
             phone: row.phone,
             address: row.address,
             joinDate: row.join_date || row.joinDate,
-            updatedAt: row.updated_at || row.updatedAt
+            updatedAt: row.updated_at || row.updatedAt,
+            promotionLevel: row.promotion_level || row.promotionLevel
         };
         res.json(employee);
     } catch (err) {
@@ -62,13 +72,34 @@ export const getEmployeeById = async (req, res) => {
 };
 
 export const createEmployee = async (req, res) => {
-    const { firstName, lastName, email, position, department, salary, status, avatar, phone, address, cnic } = req.body;
-    const id = uuidv4(); // Employee ID
-    const joinDate = new Date().toISOString();
-
-    const newEmpPayload = { id, firstName, lastName, email, position, department, salary, status: status || 'Active', avatar, phone, address, cnic, joinDate };
-
     try {
+        const { firstName, lastName, email, position, department, salary, promotionLevel, stipendType, stipendDescription, status, avatar, phone, address, cnic } = req.body;
+        const id = uuidv4(); // Employee ID
+        const joinDate = new Date().toISOString();
+
+        // Handle File Uploads
+        const files = req.files || {};
+        const getFileUrl = (fieldName) => {
+            if (files[fieldName] && files[fieldName][0]) {
+                const file = files[fieldName][0];
+                return file.filename ? `/uploads/${file.filename}` : null;
+            }
+            return null;
+        };
+
+        const cnicFront = getFileUrl('cnic_front');
+        const cnicBack = getFileUrl('cnic_back');
+        const matricResult = getFileUrl('matric_result');
+        const interResult = getFileUrl('inter_result');
+        const cv = getFileUrl('cv');
+
+        const newEmpPayload = {
+            id, firstName, lastName, email, position, department, salary,
+            stipendType, stipendDescription,
+            status: status || 'Active', avatar, phone, address, cnic, joinDate,
+            cnicFront, cnicBack, matricResult, interResult, cv, promotionLevel
+        };
+
         // 1. Create Employee Record
         const savedEmp = await dbAdapter.hr.createEmployee(newEmpPayload);
 
@@ -116,6 +147,9 @@ export const createEmployee = async (req, res) => {
         res.status(201).json(savedEmp);
     } catch (err) {
         console.error('Create Employee Error:', err);
+        if (err.message && (err.message.includes('SQLITE_CONSTRAINT') || err.message.includes('unique constraint'))) {
+            return res.status(400).json({ error: 'Employee with this email already exists' });
+        }
         res.status(500).json({ error: err.message });
     }
 };
@@ -124,6 +158,34 @@ export const updateEmployee = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+
+        // Handle File Uploads (Merge into updates)
+        const files = req.files || {};
+        const getFileUrl = (fieldName) => {
+            if (files[fieldName] && files[fieldName][0]) {
+                const file = files[fieldName][0];
+                return file.filename ? `/uploads/${file.filename}` : null;
+            }
+            return null;
+        };
+
+        const cnicFront = getFileUrl('cnic_front');
+        if (cnicFront) updates.cnicFront = cnicFront;
+
+        const cnicBack = getFileUrl('cnic_back');
+        if (cnicBack) updates.cnicBack = cnicBack;
+
+        const matricResult = getFileUrl('matric_result');
+        if (matricResult) updates.matricResult = matricResult;
+
+        const interResult = getFileUrl('inter_result');
+        if (interResult) updates.interResult = interResult;
+
+        const cv = getFileUrl('cv');
+        if (cv) updates.cv = cv;
+
+        if (updates.promotionLevel) updates.promotionLevel = updates.promotionLevel;
+
         const updatedEmp = await dbAdapter.hr.updateEmployee(id, updates);
         res.json(updatedEmp);
     } catch (err) {
@@ -133,7 +195,14 @@ export const updateEmployee = async (req, res) => {
 };
 
 export const deleteEmployee = async (req, res) => {
-    res.status(501).json({ error: "Delete not yet implemented in Vercel mode" });
+    try {
+        const { id } = req.params;
+        await dbAdapter.hr.deleteEmployee(id);
+        res.json({ success: true, message: 'Employee deleted' });
+    } catch (err) {
+        console.error('Delete Employee Error:', err);
+        res.status(500).json({ error: err.message });
+    }
 };
 
 // --- Leave Management ---
@@ -256,6 +325,117 @@ export const updateLeaveStatus = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Update Leave Status Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+// --- Attendance ---
+
+export const getAllAttendance = async (req, res) => {
+    try {
+        let attendance = await dbAdapter.hr.getAllAttendance();
+
+        // Transform if necessary (dbAdapter keys might be mixed camel/snake depending on adapter version, 
+        // but our new adapter code strictly returns camelCase for SQLite and snake_case mostly for Supabase 
+        // unless we map it. Let's inspect dbAdapter return... 
+        // dbAdapter SQLite returns: employeeId, employeeName... (camelCase)
+        // dbAdapter Supabase returns: raw rows (snake_case).
+        // WE NEED TO NORMALIZE HERE to camelCase for Frontend.
+
+        attendance = attendance.map(a => ({
+            id: a.id,
+            employeeId: a.employee_id || a.employeeId,
+            employeeName: a.employee_name || a.employeeName,
+            date: a.date,
+            checkIn: a.check_in || a.checkIn,
+            checkOut: a.check_out || a.checkOut,
+            status: a.status,
+            workHours: a.work_hours || a.workHours,
+            createdAt: a.created_at || a.createdAt
+        }));
+
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        console.log('DEBUG getAllAttendance:', {
+            email: req.user?.email,
+            role: req.user?.role,
+            normalizedRole: userRole,
+            totalRecordsFetched: attendance?.length
+        });
+
+        // Filter for Non-Admins
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            console.log('DEBUG: Filtering for Employee view');
+            const employee = await dbAdapter.hr.getEmployeeByEmail(req.user.email);
+            if (employee) {
+                attendance = attendance.filter(r => r.employeeId === employee.id);
+            } else {
+                console.log('DEBUG: No employee record found for user');
+                attendance = [];
+            }
+        }
+
+        res.json(attendance);
+    } catch (err) {
+        console.error('Get Attendance Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getEmployeeHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const history = await dbAdapter.hr.getEmployeeHistory(id);
+        res.json(history);
+    } catch (err) {
+        console.error("Get History Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const createAttendance = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized: Only Admins can manually add attendance' });
+        }
+
+        const { employeeId, employeeName, date, checkIn, checkOut, status, workHours } = req.body;
+        const id = uuidv4();
+
+        const record = {
+            id,
+            employeeId,
+            employeeName,
+            date,
+            checkIn,
+            checkOut,
+            status: status || 'Present',
+            workHours
+        };
+
+        await dbAdapter.hr.createAttendance(record);
+        res.status(201).json(record);
+
+    } catch (err) {
+        console.error('Create Attendance Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateAttendance = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { id } = req.params;
+        const updates = req.body;
+
+        const result = await dbAdapter.hr.updateAttendance(id, updates);
+        res.json(result);
+
+    } catch (err) {
+        console.error('Update Attendance Error:', err);
         res.status(500).json({ error: err.message });
     }
 };

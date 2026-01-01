@@ -136,6 +136,9 @@ async function initSchemaPostgres(pool) {
             department_id TEXT,
             department_name TEXT,
             salary DECIMAL(15,2),
+            stipend_type TEXT,
+            stipend_description TEXT,
+            join_date TEXT,
             join_date TEXT,
             status TEXT CHECK(status IN ('Active', 'On Leave', 'Terminated')),
             avatar_url TEXT,
@@ -155,6 +158,18 @@ async function initSchemaPostgres(pool) {
             end_date TIMESTAMP,
             reason TEXT,
             status TEXT DEFAULT 'Pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await client.query(`CREATE TABLE IF NOT EXISTS attendance (
+            id TEXT PRIMARY KEY,
+            employee_id TEXT,
+            employee_name TEXT,
+            date TEXT,
+            check_in TEXT,
+            check_out TEXT,
+            status TEXT,
+            work_hours TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
@@ -223,14 +238,32 @@ function initSchemaSQLite(db) {
             department_id TEXT,
             department_name TEXT,
             salary REAL,
+            stipend_type TEXT,
+            stipend_description TEXT,
             join_date TEXT,
             status TEXT CHECK(status IN ('Active', 'On Leave', 'Terminated')),
             avatar_url TEXT,
             phone TEXT,
             address TEXT,
+            cnic_front TEXT,
+            cnic_back TEXT,
+            matric_result TEXT,
+            inter_result TEXT,
+            cv TEXT,
             cnic TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+        db.run(`CREATE TABLE IF NOT EXISTS attendance (
+            id TEXT PRIMARY KEY,
+            employee_id TEXT,
+            employee_name TEXT,
+            date TEXT,
+            check_in TEXT,
+            check_out TEXT,
+            status TEXT,
+            work_hours TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
     });
 }

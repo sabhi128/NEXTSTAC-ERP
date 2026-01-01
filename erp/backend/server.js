@@ -35,6 +35,14 @@ app.use('/api/admin', adminRoutes);           // Admin Management
 app.use('/api/documents', documentRoutes);    // File Manager
 
 // Serve Uploads
+// (Imports already at top or handled via es modules, but since this is ES module, path/url imports are fine if not duplicated)
+// Note: path and fileURLToPath were already imported in my previous insertion block, let's keep one content.
+
+// If previous file had them, find where.
+// Block at lines 37-41 was seemingly there or I added it?
+// The file view shows I added lines 40-46 which were duplicates of 37-41?
+// Let's just create one clean block.
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

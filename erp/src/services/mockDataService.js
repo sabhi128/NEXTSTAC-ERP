@@ -134,14 +134,30 @@ export const mockDataService = {
         return api.get('/hr/employees');
     },
 
+    getEmployeeHistory: async (id) => {
+        const { api } = await import('../lib/api');
+        return api.get(`/hr/employees/${id}/history`);
+    },
+
     addEmployee: async (employee) => {
         const { api } = await import('../lib/api');
-        // Generate a default avatar if not provided
-        const employeeWithAvatar = {
-            ...employee,
-            avatar: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.firstName + ' ' + employee.lastName)}&background=random`
-        };
-        const data = await api.post('/hr/employees', employeeWithAvatar);
+
+        let payload = employee;
+
+        if (!(employee instanceof FormData)) {
+            payload = {
+                ...employee,
+                avatar: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.firstName + ' ' + employee.lastName)}&background=random`
+            };
+        } else {
+            if (!employee.get('avatar')) {
+                const name = (employee.get('firstName') || '') + ' ' + (employee.get('lastName') || '');
+                employee.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=random`);
+            }
+            payload = employee;
+        }
+
+        const data = await api.post('/hr/employees', payload);
         return { success: true, data };
     },
 

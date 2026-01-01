@@ -22,6 +22,7 @@ import AttendanceLog from './modules/hr/pages/AttendanceLog';
 import PayrollList from './modules/hr/pages/PayrollList';
 import LeaveManagement from './modules/hr/pages/LeaveManagement';
 import LeaveHistory from './modules/hr/pages/LeaveHistory';
+import EmployeeDocuments from './modules/hr/pages/EmployeeDocuments';
 import ProductList from './modules/inventory/pages/ProductList';
 import VendorList from './modules/inventory/pages/VendorList';
 import WarehouseList from './modules/inventory/pages/WarehouseList';
@@ -203,6 +204,10 @@ export const router = createBrowserRouter([
                     {
                         path: 'admin/users',
                         element: <RoleRoute allowed={['super_admin']}><UserManagement /></RoleRoute>
+                    },
+                    {
+                        path: 'employee-documents',
+                        element: <RoleRoute allowed={['super_admin']}><EmployeeDocuments /></RoleRoute>
                     }
                 ],
             }

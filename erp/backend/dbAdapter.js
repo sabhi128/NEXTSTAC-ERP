@@ -160,7 +160,8 @@ dbAdapter.hr = {
             return data;
         } else {
             return new Promise((resolve, reject) => {
-                db.all(`SELECT id, first_name as firstName, last_name as lastName, email, position, department_name as department, salary, status, avatar_url as avatar, phone, address, join_date as joinDate, updated_at as updatedAt FROM employees ORDER BY created_at DESC`, [], (err, rows) => {
+                try { fs.appendFileSync('debug_db.log', `[${new Date().toISOString()}] getAllEmployees called\n`); } catch (e) { }
+                db.all(`SELECT id, first_name as firstName, last_name as lastName, email, position, department_name as department, salary, status, avatar_url as avatar, phone, address, join_date as joinDate, updated_at as updatedAt, stipend_type as stipendType, stipend_description as stipendDescription, cnic_front as cnicFront, cnic_back as cnicBack, matric_result as matricResult, inter_result as interResult, cv, promotion_level as promotionLevel FROM employees ORDER BY created_at DESC`, [], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
                 });
@@ -215,23 +216,31 @@ dbAdapter.hr = {
                 position: emp.position,
                 department_name: emp.department,
                 salary: emp.salary,
+                stipend_type: emp.stipendType,
+                stipend_description: emp.stipendDescription,
                 status: emp.status,
                 avatar_url: emp.avatar,
                 phone: emp.phone,
                 address: emp.address,
-                join_date: emp.joinDate
+                join_date: emp.joinDate,
+                cnic_front: emp.cnicFront,
+                cnic_back: emp.cnicBack,
+                matric_result: emp.matricResult,
+                inter_result: emp.interResult,
+                cv: emp.cv
             };
             const { error } = await supabase.from('employees').insert([dbPayload]);
             if (error) throw new Error(error.message);
             return emp;
         } else {
             return new Promise((resolve, reject) => {
-                const stmt = db.prepare("INSERT INTO employees (id, first_name, last_name, email, position, department_name, salary, status, avatar_url, phone, address, join_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                stmt.run(emp.id, emp.firstName, emp.lastName, emp.email, emp.position, emp.department, emp.salary, emp.status, emp.avatar, emp.phone, emp.address, emp.joinDate, function (err) {
+                const sql = "INSERT INTO employees (id, first_name, last_name, email, position, department_name, salary, stipend_type, stipend_description, status, avatar_url, phone, address, join_date, cnic_front, cnic_back, matric_result, inter_result, cv, promotion_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                const params = [emp.id, emp.firstName, emp.lastName, emp.email, emp.position, emp.department, emp.salary, emp.stipendType, emp.stipendDescription, emp.status, emp.avatar, emp.phone, emp.address, emp.joinDate, emp.cnicFront, emp.cnicBack, emp.matricResult, emp.interResult, emp.cv, emp.promotionLevel];
+
+                db.run(sql, params, function (err) {
                     if (err) reject(err);
                     else resolve(emp);
                 });
-                stmt.finalize();
             });
         }
     },
@@ -245,15 +254,84 @@ dbAdapter.hr = {
         if (updates.position) dbUpdates.position = updates.position;
         if (updates.department) dbUpdates.department_name = updates.department;
         if (updates.salary) dbUpdates.salary = updates.salary;
+        if (updates.promotionLevel) dbUpdates.promotion_level = updates.promotionLevel;
+        if (updates.stipendType) dbUpdates.stipend_type = updates.stipendType;
+        if (updates.stipendDescription) dbUpdates.stipend_description = updates.stipendDescription;
         if (updates.status) dbUpdates.status = updates.status;
         if (updates.avatar) dbUpdates.avatar_url = updates.avatar;
         if (updates.phone) dbUpdates.phone = updates.phone;
         if (updates.address) dbUpdates.address = updates.address;
+        if (updates.cnicFront) dbUpdates.cnic_front = updates.cnicFront;
+        if (updates.cnicBack) dbUpdates.cnic_back = updates.cnicBack;
+        if (updates.matricResult) dbUpdates.matric_result = updates.matricResult;
+        if (updates.interResult) dbUpdates.inter_result = updates.interResult;
+        if (updates.cv) dbUpdates.cv = updates.cv;
 
         // Add updated_at timestamp
         dbUpdates.updated_at = new Date().toISOString();
 
+        // --- HISTORY TRACKING ---
+        // Before updating, check if critical fields changed.
+        try {
+            // Need the old record. Since this is inside dbAdapter.hr, we can call getEmployeeById via 'this' if bound, or direct DB call.
+            // But 'this' might be tricky. Let's do a direct DB fetch for safety (SQLite specific here as Vercel block is separate).
+
+            if (!isVercel) {
+                const oldEmp = await new Promise((resolve) => {
+                    db.get(`SELECT * FROM employees WHERE id = ?`, [id], (err, row) => resolve(row));
+                });
+
+                if (oldEmp) {
+                    const changes = [];
+                    // Check Position
+                    if (updates.position && updates.position !== oldEmp.position) changes.push('position');
+                    // Check Level (Promotion)
+                    if (updates.promotionLevel && updates.promotionLevel !== oldEmp.promotion_level) changes.push('level');
+                    // Check Salary
+                    if (updates.salary && String(updates.salary) !== String(oldEmp.salary)) changes.push('salary');
+                    // Check Department
+                    if (updates.department && updates.department !== oldEmp.department_name) changes.push('department');
+
+                    if (changes.length > 0) {
+                        // Insert History
+                        const { v4: uuidv4 } = await import('uuid');
+                        const historyId = uuidv4();
+                        const changeDate = new Date().toISOString();
+                        const changedBy = updates.updatedBy || 'System'; // Pass updatedBy from controller if available
+
+                        await new Promise((resolve, reject) => {
+                            db.run(`INSERT INTO employee_history 
+                                (id, employee_id, old_position, old_level, old_salary, old_department, new_position, new_level, new_salary, new_department, change_date, changed_by)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                [
+                                    historyId,
+                                    id,
+                                    oldEmp.position,
+                                    oldEmp.promotion_level,
+                                    oldEmp.salary,
+                                    oldEmp.department_name,
+                                    updates.position || oldEmp.position,
+                                    updates.promotionLevel || oldEmp.promotion_level,
+                                    updates.salary || oldEmp.salary,
+                                    updates.department || oldEmp.department_name,
+                                    changeDate,
+                                    changedBy
+                                ],
+                                (err) => {
+                                    if (err) console.error("History Insert Error:", err); // Log but don't fail update?
+                                    resolve();
+                                }
+                            );
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("History Tracking Error:", e);
+        }
+
         if (isVercel) {
+            // ... (Keep Vercel logic mostly same or assume user is Local)
             if (!supabase) throw new Error('Supabase client not initialized');
             const { data, error } = await supabase.from('employees').update(dbUpdates).eq('id', id).select();
             if (error) throw new Error(error.message);
@@ -268,6 +346,36 @@ dbAdapter.hr = {
                 db.run(`UPDATE employees SET ${setClause} WHERE id = ?`, [...values, id], function (err) {
                     if (err) reject(err);
                     else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
+    getEmployeeHistory: async (id) => {
+        if (isVercel) {
+            // Supabase implementation needed if migrating
+            return [];
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all(`SELECT * FROM employee_history WHERE employee_id = ? ORDER BY change_date DESC`, [id], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+
+    deleteEmployee: async (id) => {
+        if (isVercel) {
+            if (!supabase) throw new Error('Supabase client not initialized');
+            const { error } = await supabase.from('employees').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM employees WHERE id = ?", [id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
                 });
             });
         }
@@ -327,6 +435,84 @@ dbAdapter.hr = {
                 db.run("UPDATE leaves SET status = ? WHERE id = ?", [status, id], function (err) {
                     if (err) reject(err);
                     else resolve({ id, status });
+                });
+            });
+        }
+    },
+
+    // Attendance
+    getAllAttendance: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
+            if (error) throw new Error(error.message);
+            return data;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all("SELECT id, employee_id as employeeId, employee_name as employeeName, date, check_in as checkIn, check_out as checkOut, status, work_hours as workHours, created_at as createdAt FROM attendance ORDER BY created_at DESC", [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+
+    createAttendance: async (record) => {
+        if (isVercel) {
+            const payload = {
+                id: record.id,
+                employee_id: record.employeeId,
+                employee_name: record.employeeName,
+                date: record.date,
+                check_in: record.checkIn,
+                check_out: record.checkOut,
+                status: record.status,
+                work_hours: record.workHours
+            };
+            const { error } = await supabase.from('attendance').insert([payload]);
+            if (error) throw new Error(error.message);
+            return record;
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = "INSERT INTO attendance (id, employee_id, employee_name, date, check_in, check_out, status, work_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                db.run(sql, [record.id, record.employeeId, record.employeeName, record.date, record.checkIn, record.checkOut, record.status, record.workHours], function (err) {
+                    if (err) reject(err);
+                    else resolve(record);
+                });
+            });
+        }
+    },
+
+    updateAttendance: async (id, updates) => {
+        if (isVercel) {
+            const mapped = {};
+            for (const [key, val] of Object.entries(updates)) {
+                if (key === 'checkIn') mapped.check_in = val;
+                else if (key === 'checkOut') mapped.check_out = val;
+                else if (key === 'workHours') mapped.work_hours = val;
+                else mapped[key] = val;
+            }
+            const { error } = await supabase.from('attendance').update(mapped).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({});
+
+                const fields = keys.map((key) => {
+                    if (key === 'checkIn') return 'check_in = ?';
+                    if (key === 'checkOut') return 'check_out = ?';
+                    if (key === 'workHours') return 'work_hours = ?';
+                    return `${key} = ?`;
+                });
+
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+
+                const sql = `UPDATE attendance SET ${fields.join(', ')} WHERE id = ?`;
+                db.run(sql, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
                 });
             });
         }

@@ -157,7 +157,30 @@ dbAdapter.hr = {
             if (!supabase) throw new Error('Supabase client not initialized');
             const { data, error } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            // Map snake_case to camelCase
+            return data.map(emp => ({
+                id: emp.id,
+                firstName: emp.first_name,
+                lastName: emp.last_name,
+                email: emp.email,
+                position: emp.position,
+                department: emp.department_name,
+                salary: emp.salary,
+                stipendType: emp.stipend_type,
+                stipendDescription: emp.stipend_description,
+                status: emp.status,
+                avatar: emp.avatar_url,
+                phone: emp.phone,
+                address: emp.address,
+                joinDate: emp.join_date,
+                cnicFront: emp.cnic_front,
+                cnicBack: emp.cnic_back,
+                matricResult: emp.matric_result,
+                interResult: emp.inter_result,
+                cv: emp.cv,
+                promotionLevel: emp.promotion_level,
+                updatedAt: emp.updated_at
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 try { fs.appendFileSync('debug_db.log', `[${new Date().toISOString()}] getAllEmployees called\n`); } catch (e) { }
@@ -190,7 +213,30 @@ dbAdapter.hr = {
         if (isVercel) {
             const { data, error } = await supabase.from('employees').select('*').eq('id', id).single();
             if (error) throw new Error(error.message);
-            return data;
+            // Map snake_case to camelCase
+            return {
+                id: data.id,
+                firstName: data.first_name,
+                lastName: data.last_name,
+                email: data.email,
+                position: data.position,
+                department: data.department_name,
+                salary: data.salary,
+                stipendType: data.stipend_type,
+                stipendDescription: data.stipend_description,
+                status: data.status,
+                avatar: data.avatar_url,
+                phone: data.phone,
+                address: data.address,
+                joinDate: data.join_date,
+                cnicFront: data.cnic_front,
+                cnicBack: data.cnic_back,
+                matricResult: data.matric_result,
+                interResult: data.inter_result,
+                cv: data.cv,
+                promotionLevel: data.promotion_level,
+                updatedAt: data.updated_at
+            };
         } else {
             return new Promise((resolve, reject) => {
                 db.get(`SELECT id, first_name as firstName, last_name as lastName, email, position, department_name as department, salary, status, avatar_url as avatar, phone, address, join_date as joinDate, updated_at as updatedAt FROM employees WHERE id = ?`, [id], (err, row) => {
@@ -386,9 +432,17 @@ dbAdapter.hr = {
         if (isVercel) {
             const { data, error } = await supabase.from('leaves').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            // Transform snake_case to camelCase for consistency if needed? 
-            // Controller expects: leave.employee_id etc.
-            return data;
+            return data.map(l => ({
+                id: l.id,
+                employeeId: l.employee_id,
+                employeeName: l.employee_name,
+                type: l.type,
+                startDate: l.start_date,
+                endDate: l.end_date,
+                reason: l.reason,
+                status: l.status,
+                createdAt: l.created_at
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all("SELECT * FROM leaves ORDER BY created_at DESC", [], (err, rows) => {
@@ -445,7 +499,17 @@ dbAdapter.hr = {
         if (isVercel) {
             const { data, error } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(a => ({
+                id: a.id,
+                employeeId: a.employee_id,
+                employeeName: a.employee_name,
+                date: a.date,
+                checkIn: a.check_in,
+                checkOut: a.check_out,
+                status: a.status,
+                workHours: a.work_hours,
+                createdAt: a.created_at
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all("SELECT id, employee_id as employeeId, employee_name as employeeName, date, check_in as checkIn, check_out as checkOut, status, work_hours as workHours, created_at as createdAt FROM attendance ORDER BY created_at DESC", [], (err, rows) => {
@@ -525,7 +589,18 @@ dbAdapter.inventory = {
         if (isVercel) {
             const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(p => ({
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                category: p.category,
+                price: p.price,
+                stock: p.stock,
+                minStock: p.min_stock,
+                supplier: p.supplier,
+                status: p.status,
+                lastUpdated: p.last_updated
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, name, sku, category, price, stock, min_stock as minStock, supplier, status, last_updated as lastUpdated FROM products ORDER BY created_at DESC`, [], (err, rows) => {
@@ -626,7 +701,15 @@ dbAdapter.finance = {
         if (isVercel) {
             const { data, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(t => ({
+                id: t.id,
+                date: t.date,
+                description: t.description,
+                amount: t.amount,
+                type: t.type,
+                category: t.category,
+                reference: t.reference
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, date, description, amount, type, category, reference FROM transactions ORDER BY created_at DESC`, [], (err, rows) => {
@@ -672,7 +755,16 @@ dbAdapter.finance = {
         if (isVercel) {
             const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(i => ({
+                id: i.id,
+                invoiceNumber: i.invoice_number,
+                customer: i.customer_name,
+                date: i.date,
+                dueDate: i.due_date,
+                amount: i.amount,
+                status: i.status,
+                items: i.items_count // Controller expects 'items' for count? No, schema says items_count -> items (in SQLite query)
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, invoice_number as invoiceNumber, customer_name as customer, date, due_date as dueDate, amount, status, items_count as items FROM invoices ORDER BY created_at DESC`, [], (err, rows) => {
@@ -715,7 +807,15 @@ dbAdapter.finance = {
         if (isVercel) {
             const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(p => ({
+                id: p.id,
+                paymentNumber: p.payment_number,
+                vendor: p.vendor,
+                amount: p.amount,
+                date: p.date,
+                method: p.method,
+                status: p.status
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, payment_number as paymentNumber, vendor, amount, date, method, status FROM payments ORDER BY created_at DESC`, [], (err, rows) => {
@@ -788,7 +888,18 @@ dbAdapter.crm = {
         if (isVercel) {
             const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
-            return data;
+            return data.map(c => ({
+                id: c.id,
+                name: c.name,
+                company: c.company,
+                email: c.email,
+                phone: c.phone,
+                address: c.address,
+                status: c.status,
+                notes: c.notes,
+                totalOrders: c.total_orders,
+                lastOrderDate: c.last_order_date
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, name, company, email, phone, address, status, notes, total_orders as totalOrders, last_order_date as lastOrderDate FROM customers ORDER BY created_at DESC`, [], (err, rows) => {

@@ -55,22 +55,27 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Manual session restoration from localStorage
+        // Manual session restoration from sessionStorage (cleared on close)
         const restoreSession = () => {
             try {
-                const savedSession = localStorage.getItem('app_session');
+                // Check if we need to clean up legacy localStorage
+                if (localStorage.getItem('app_session')) {
+                    localStorage.removeItem('app_session');
+                }
+
+                const savedSession = sessionStorage.getItem('app_session');
                 if (savedSession) {
                     const sessionData = JSON.parse(savedSession);
                     // Check if session is still valid (not expired)
                     if (sessionData.expiresAt && Date.now() < sessionData.expiresAt) {
                         setUser(sessionData.user);
                     } else {
-                        localStorage.removeItem('app_session');
+                        sessionStorage.removeItem('app_session');
                     }
                 }
             } catch (error) {
                 console.error('Failed to restore session:', error);
-                localStorage.removeItem('app_session');
+                sessionStorage.removeItem('app_session');
             }
             setLoading(false);
         };
@@ -130,13 +135,13 @@ export const AuthProvider = ({ children }) => {
 
                 setUser(userProfile);
 
-                // Manually save session to localStorage
+                // Manually save session to sessionStorage
                 const sessionData = {
                     access_token: data.session.access_token,
                     user: userProfile,
-                    expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+                    expiresAt: Date.now() + (12 * 60 * 60 * 1000) // 12 hours (shorter for session)
                 };
-                localStorage.setItem('app_session', JSON.stringify(sessionData));
+                sessionStorage.setItem('app_session', JSON.stringify(sessionData));
 
                 return { success: true };
             }
@@ -221,13 +226,13 @@ export const AuthProvider = ({ children }) => {
         try {
             await supabase.auth.signOut();
             setUser(null);
-            localStorage.removeItem('app_session'); // Clear manual session
+            sessionStorage.removeItem('app_session'); // Clear manual session
             window.location.href = '/login';
         } catch (error) {
             console.error('Logout error:', error);
             // Force logout even if there's an error
             setUser(null);
-            localStorage.removeItem('app_session'); // Clear manual session
+            sessionStorage.removeItem('app_session'); // Clear manual session
             window.location.href = '/login';
         }
     };

@@ -8,22 +8,18 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
  */
 const getAuthToken = async () => {
     try {
-        // Read from manual localStorage session
-        const sessionData = localStorage.getItem('app_session');
+        // Read from manual session (check sessionStorage first, then legacy localStorage)
+        let sessionData = sessionStorage.getItem('app_session');
+
         if (!sessionData) {
-            console.warn('No session found in localStorage');
+            sessionData = localStorage.getItem('app_session');
+        }
+
+        if (!sessionData) {
             return '';
         }
 
         const session = JSON.parse(sessionData);
-
-        // Check if session is expired
-        // if (session.expiresAt && session.expiresAt < Date.now()) {
-        //     console.warn('Session expired');
-        //     localStorage.removeItem('app_session');
-        //     return '';
-        // }
-
         return session.access_token || '';
     } catch (error) {
         console.error('Error getting auth token:', error);

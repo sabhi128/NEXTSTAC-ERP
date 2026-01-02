@@ -15,6 +15,11 @@ export const verifySupabaseToken = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
+        if (!supabase) {
+            console.error('[AUTH ERROR] Supabase client is not initialized. Check Env Vars.');
+            return res.status(500).json({ error: 'Server Configuration Error: Supabase Missing' });
+        }
+
         // Verify the JWT token with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
 

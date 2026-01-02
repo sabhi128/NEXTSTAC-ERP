@@ -146,6 +146,39 @@ const dbAdapter = {
                 });
             });
         }
+    },
+
+    // --- Settings / Config ---
+    getSetting: async (key) => {
+        if (isVercel) {
+            if (!supabase) return null; // Safe fail
+            const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
+            if (error) return null;
+            return data?.value;
+        } else {
+            return new Promise((resolve, reject) => {
+                // Return null if table missing or error (safe fail for SQLite if migration not run)
+                db.get("SELECT value FROM settings WHERE key = ?", [key], (err, row) => {
+                    if (err) resolve(null); // Resolve null on error (e.g. no table)
+                    else resolve(row ? row.value : null);
+                });
+            });
+        }
+    },
+
+    setSetting: async (key, value) => {
+        const valStr = String(value);
+        if (isVercel) {
+            if (!supabase) throw new Error('Supabase client not initialized');
+            const { error } = await supabase.from('settings').upsert({ key, value: valStr });
+            if (error) throw new Error(error.message);
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [key, valStr], (err) => {
+                    if (err) reject(err); else resolve();
+                });
+            });
+        }
     }
 };
 

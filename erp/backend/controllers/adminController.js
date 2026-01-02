@@ -1,4 +1,5 @@
 import dbAdapter from '../dbAdapter.js';
+import { supabaseAdmin } from '../supabaseClient.js';
 
 // Get all admin users
 export const getAdmins = async (req, res) => {
@@ -39,6 +40,22 @@ export const updateAdmin = async (req, res) => {
         if (updates.sharePercentage !== undefined) dbUpdates.share_percentage = updates.sharePercentage;
         if (updates.department !== undefined) dbUpdates.department = updates.department;
 
+        // handle password update if provided (e.g. CNIC reset)
+        if (updates.password) {
+            if (supabaseAdmin) {
+                const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+                    password: updates.password
+                });
+                if (authError) {
+                    console.error('Failed to update password in Auth:', authError);
+                    throw new Error('Failed to update password: ' + authError.message);
+                }
+                console.log(`Password updated for user ${id}`);
+            } else {
+                console.warn('Cannot update password: supabaseAdmin missing');
+            }
+        }
+
         await dbAdapter.updateUser(id, dbUpdates);
 
         const updatedUser = await dbAdapter.findUserById(id);
@@ -72,16 +89,13 @@ export const deleteAdmin = async (req, res) => {
     }
 };
 
-// Get compensation config (stored in a config table or settings)
+// Get compensation config
 export const getCompensationConfig = async (req, res) => {
     try {
-        // For now, return a default config
-        // TODO: Store this in a settings/config table
-        const config = {
-            basePool: 10000 // Default value
-        };
-
-        res.json(config);
+        const basePool = await dbAdapter.getSetting('base_pool');
+        res.json({
+            basePool: parseFloat(basePool) || 10000
+        });
     } catch (error) {
         console.error('Get config error:', error);
         res.status(500).json({ error: error.message });
@@ -92,9 +106,7 @@ export const getCompensationConfig = async (req, res) => {
 export const updateCompensationConfig = async (req, res) => {
     try {
         const { basePool } = req.body;
-
-        // TODO: Store this in a database table
-        // For now, just return success
+        await dbAdapter.setSetting('base_pool', basePool);
         res.json({ basePool });
     } catch (error) {
         console.error('Update config error:', error);

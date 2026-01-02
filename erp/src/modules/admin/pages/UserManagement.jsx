@@ -266,9 +266,10 @@ export default function UserManagement() {
                         <div className="flex items-center gap-2">
                             <span className="text-3xl font-black text-white">$</span>
                             <input
+                                key={basePool} // Reset when data loads
                                 type="number"
-                                value={basePool}
-                                onChange={(e) => handleUpdateBasePool(parseFloat(e.target.value) || 0)}
+                                defaultValue={basePool}
+                                onBlur={(e) => handleUpdateBasePool(parseFloat(e.target.value) || 0)}
                                 className="bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-2xl font-bold text-white outline-none focus:bg-white/30 focus:ring-2 focus:ring-white/50 w-full backdrop-blur-xl"
                             />
                         </div>
@@ -357,19 +358,19 @@ export default function UserManagement() {
                                 />
                             </div>
 
-                            {!editingId && (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-300">Initial Password</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full px-4 py-3 border-2 border-slate-700/50 bg-slate-900/50 rounded-xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-white placeholder-slate-500 transition-all"
-                                        value={formData.password || ''}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder="Set initial password (e.g. CNIC)"
-                                    />
-                                </div>
-                            )}
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-300">
+                                    {editingId ? 'Reset Password / CNIC' : 'Initial Password'}
+                                </label>
+                                <input
+                                    type="text"
+                                    required={!editingId}
+                                    className="w-full px-4 py-3 border-2 border-slate-700/50 bg-slate-900/50 rounded-xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-white placeholder-slate-500 transition-all"
+                                    value={formData.password || ''}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder={editingId ? "Enter CNIC to reset password" : "Set initial password (e.g. CNIC)"}
+                                />
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-300">Role</label>

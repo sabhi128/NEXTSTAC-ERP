@@ -56,6 +56,32 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', database: 'connected' });
 });
 
+app.get('/api/debug-status', (req, res) => {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const serviceRole = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+    // Check if dbAdapter's client is ready
+    const isVercel = process.env.VERCEL === '1';
+
+    res.json({
+        environment: {
+            isVercel: isVercel,
+            nodeEnv: process.env.NODE_ENV
+        },
+        supabase: {
+            hasUrl: !!supabaseUrl,
+            hasServiceRole: !!serviceRole,
+            hasAnonKey: !!anonKey,
+            urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 15) + '...' : 'MISSING'
+        },
+        system: {
+            cwd: process.cwd(),
+            platform: process.platform
+        }
+    });
+});
+
 // Start Server
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {

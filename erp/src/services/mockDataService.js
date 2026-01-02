@@ -520,7 +520,12 @@ export const mockDataService = {
 
         // We need to bypass the default JSON headers in api.js, so we use raw fetch here
         // or we could assume api.js handles FormData if we pass a specific flag, but raw fetch is safer for today.
-        const token = localStorage.getItem('app_session') ? JSON.parse(localStorage.getItem('app_session')).access_token : '';
+        // Helper to get token
+        const getSessionToken = () => {
+            const sessionData = sessionStorage.getItem('app_session') || localStorage.getItem('app_session');
+            return sessionData ? JSON.parse(sessionData).access_token : '';
+        };
+        const token = getSessionToken();
 
         const response = await fetch(`${API_URL}/documents/upload`, {
             method: 'POST',
@@ -543,7 +548,11 @@ export const mockDataService = {
     },
 
     downloadFile: async (file) => {
-        const token = localStorage.getItem('app_session') ? JSON.parse(localStorage.getItem('app_session')).access_token : '';
+        const getSessionToken = () => {
+            const sessionData = sessionStorage.getItem('app_session') || localStorage.getItem('app_session');
+            return sessionData ? JSON.parse(sessionData).access_token : '';
+        };
+        const token = getSessionToken();
 
         const response = await fetch(`${API_URL}/documents/download/${file.id}`, {
             headers: {

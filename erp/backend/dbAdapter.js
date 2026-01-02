@@ -1,5 +1,5 @@
 import db from './db.js';
-import supabase from './supabaseClient.js';
+import { supabaseAdmin as supabase } from './supabaseClient.js';
 
 const isVercel = process.env.VERCEL === '1';
 

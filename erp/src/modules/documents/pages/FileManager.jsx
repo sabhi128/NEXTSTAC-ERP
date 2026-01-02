@@ -152,7 +152,7 @@ export default function FileManager() {
     // They don't have approval power, so maybe just one list, sorted by status?
     // Or just show "Pending" badge on their files in the main list.
 
-    const isSuperAdmin = user?.role === 'super_admin';
+    const isSuperAdmin = (user?.role || '').toLowerCase() === 'super_admin';
 
     const getFileIcon = (type) => {
         if (type.includes('image')) return <ImageIcon className="w-8 h-8 text-purple-400" />;

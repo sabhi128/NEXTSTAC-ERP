@@ -33,7 +33,7 @@ const fetchUserProfile = async (userId, email) => {
             };
         }
 
-        return {
+        const profile = {
             id: data.id,
             name: data.name,
             email: data.email,
@@ -44,6 +44,8 @@ const fetchUserProfile = async (userId, email) => {
             permissions: ['all'],
             avatar: data.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`
         };
+        console.log('[AuthContext] Fetched User Profile:', profile.email, 'Role:', profile.role);
+        return profile;
     } catch (err) {
         console.error('Error fetching user profile:', err);
         return null;

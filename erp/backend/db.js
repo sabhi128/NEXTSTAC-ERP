@@ -207,6 +207,18 @@ async function initSchemaPostgres(pool) {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Documents
+        await client.query(`CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            type TEXT,
+            size TEXT,
+            path TEXT,
+            uploaded_by TEXT,
+            status TEXT DEFAULT 'Pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         await client.query('COMMIT');
         console.log('✅ PostgreSQL Schema Initialized.');
     } catch (e) {

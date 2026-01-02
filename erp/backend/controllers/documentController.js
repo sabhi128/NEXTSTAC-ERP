@@ -10,13 +10,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads directory exists
+const isVercel = process.env.VERCEL === '1';
+
+// Ensure uploads directory exists (Only on Local)
 const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+if (!isVercel && !fs.existsSync(uploadDir)) {
+    try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (err) {
+        console.error('Failed to create upload dir:', err);
+    }
 }
 
-const isVercel = process.env.VERCEL === '1';
 import { supabaseAdmin as supabase } from '../supabaseClient.js'; // Ensure imported
 
 // Multer Config

@@ -115,10 +115,12 @@ export const createInvoice = async (req, res) => {
 };
 
 export const updateInvoiceStatus = async (req, res) => {
-    // Not implemented in adapter yet? I vaguely recall not implementing updateInvoiceStatus in adapter...
-    // Wait, I did implement updatePaymentStatus. Did I do invoice?
-    // Checking previous tool call... I did NOT implement updateInvoiceStatus in dbAdapter.
-    res.status(501).json({ error: "Update Invoice not supported yet" });
+    try {
+        const result = await dbAdapter.finance.updateInvoiceStatus(req.params.id, req.body.status);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 
 export const deleteInvoice = async (req, res) => {

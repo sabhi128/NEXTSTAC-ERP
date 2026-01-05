@@ -45,7 +45,9 @@ export default function InvoiceList() {
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateInvoiceStatus(id, status)), 300)),
+        mutationFn: async ({ id, status }) => {
+            return await api.patch(`/finance/invoices/${id}/status`, { status });
+        },
         onSuccess: () => queryClient.invalidateQueries(['invoices'])
     });
 

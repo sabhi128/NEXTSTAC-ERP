@@ -220,9 +220,22 @@ export default function AttendanceLog() {
                                         {record.checkOut}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${getStatusColor(record.status)}`}>
+                                        <button
+                                            onClick={() => {
+                                                const nextStatus = {
+                                                    'Present': 'Late',
+                                                    'Late': 'Half Day',
+                                                    'Half Day': 'Absent',
+                                                    'Absent': 'Present'
+                                                }[record.status] || 'Present';
+
+                                                handleSave(record.id, { status: nextStatus });
+                                            }}
+                                            className={`px-2.5 py-1 rounded-xl text-xs font-bold border cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(record.status)}`}
+                                            title="Click to change status"
+                                        >
                                             {record.status}
-                                        </span>
+                                        </button>
                                     </td>
                                     <td className="px-6 py-4 text-right whitespace-nowrap">
                                         <button

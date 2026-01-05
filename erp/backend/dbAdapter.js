@@ -886,6 +886,21 @@ dbAdapter.finance = {
         }
     },
 
+    updateInvoiceStatus: async (id, status) => {
+        if (isVercel) {
+            const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, status };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("UPDATE invoices SET status = ? WHERE id = ?", [status, id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, status });
+                });
+            });
+        }
+    },
+
     getPayments: async () => {
         if (isVercel) {
             const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
@@ -1395,25 +1410,7 @@ dbAdapter.purchasing = {
         }
     },
 
-    // --- Invoices (Added updateInvoiceStatus) ---
-    // Note: getInvoices and createInvoice are in the main block above but updateInvoiceStatus was missing?
-    // Actually getInvoices is not shown in the visible range of the previous read.
-    // Assuming getInvoices is defined earlier. Ideally we should add this near getInvoices but adding here is fine for JS object.
 
-    updateInvoiceStatus: async (id, status) => {
-        if (isVercel) {
-            const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, status };
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("UPDATE invoices SET status = ? WHERE id = ?", [status, id], function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, status });
-                });
-            });
-        }
-    }
 };
 
 // --- System Operations ---

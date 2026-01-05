@@ -15,18 +15,43 @@ export default function AttendanceModal({ isOpen, onClose, record, employees, on
         date: new Date().toISOString().split('T')[0]
     });
 
+    // Helper to convert 12h "05:00 PM" -> 24h "17:00" for input[type="time"]
+    const to24Hour = (timeStr) => {
+        if (!timeStr) return '';
+        if (!timeStr.includes('M')) return timeStr; // Already 24h or invalid
+        const [time, modifier] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':');
+        if (hours === '12') {
+            hours = '00';
+        }
+        if (modifier === 'PM') {
+            hours = parseInt(hours, 10) + 12;
+        }
+        return `${hours.toString().padStart(2, '0')}:${minutes}`;
+    };
+
+    // Helper to convert 24h "17:00" -> 12h "05:00 PM" for display/storage
+    const to12Hour = (timeStr) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        let h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12; // the hour '0' should be '12'
+        return `${h.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
     useEffect(() => {
         if (record) {
             setFormData({
-                employeeId: record.employeeId || '', // Handle potential undefined in existing mock data
+                employeeId: record.employeeId || '',
                 employeeName: record.employeeName,
                 status: record.status,
-                checkIn: record.checkIn,
-                checkOut: record.checkOut,
+                checkIn: to24Hour(record.checkIn),
+                checkOut: to24Hour(record.checkOut),
                 date: record.date
             });
         } else {
-            // Reset for new entry
             setFormData({
                 employeeId: '',
                 employeeName: '',
@@ -43,8 +68,12 @@ export default function AttendanceModal({ isOpen, onClose, record, employees, on
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // For new records, ensure employee name is set if ID is selected
         let dataToSave = { ...formData };
+
+        // Convert back to 12h format for storage
+        if (dataToSave.checkIn) dataToSave.checkIn = to12Hour(dataToSave.checkIn);
+        if (dataToSave.checkOut) dataToSave.checkOut = to12Hour(dataToSave.checkOut);
+
         if (!isEditing && employees) {
             const selectedEmp = employees.find(e => e.id.toString() === formData.employeeId);
             if (selectedEmp) {
@@ -128,10 +157,9 @@ export default function AttendanceModal({ isOpen, onClose, record, employees, on
                             <div className="relative">
                                 <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    type="text"
+                                    type="time"
                                     value={formData.checkIn}
                                     onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
-                                    placeholder="09:00 AM"
                                     className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                                 />
                             </div>
@@ -142,10 +170,9 @@ export default function AttendanceModal({ isOpen, onClose, record, employees, on
                             <div className="relative">
                                 <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    type="text"
+                                    type="time"
                                     value={formData.checkOut}
                                     onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
-                                    placeholder="06:00 PM"
                                     className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
                                 />
                             </div>

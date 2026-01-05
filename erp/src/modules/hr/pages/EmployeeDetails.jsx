@@ -18,12 +18,14 @@ import {
     Activity
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import EmployeeHistoryModal from '../components/EmployeeHistoryModal';
 
 export default function EmployeeDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const { data: employees, isLoading } = useQuery({
         queryKey: ['employees'],
@@ -121,7 +123,7 @@ export default function EmployeeDetails() {
                                 className="w-40 h-40 rounded-3xl border-4 border-slate-950 shadow-2xl object-cover bg-slate-800"
                             />
                             <div className={`absolute bottom-3 right-3 w-6 h-6 rounded-full border-4 border-slate-950 ${employee.status === 'Active' ? 'bg-emerald-500' :
-                                    employee.status === 'On Leave' ? 'bg-amber-500' : 'bg-red-500'
+                                employee.status === 'On Leave' ? 'bg-amber-500' : 'bg-red-500'
                                 }`} />
                         </motion.div>
 
@@ -232,10 +234,18 @@ export default function EmployeeDetails() {
                                     <div className="w-2 h-8 bg-indigo-500 rounded-full" />
                                     Salary Progression
                                 </h3>
-                                <select className="bg-slate-950 border border-white/10 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500">
-                                    <option>Last 12 Months</option>
-                                    <option>All Time</option>
-                                </select>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setIsHistoryOpen(true)}
+                                        className="px-4 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-indigo-400 border border-white/5 transition-colors"
+                                    >
+                                        View Timeline
+                                    </button>
+                                    <select className="bg-slate-950 border border-white/10 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500">
+                                        <option>Last 12 Months</option>
+                                        <option>All Time</option>
+                                    </select>
+                                </div>
                             </div>
                             <SalaryHistoryChart employeeId={id} />
                         </div>
@@ -249,6 +259,12 @@ export default function EmployeeDetails() {
                 onClose={() => setIsEditOpen(false)}
                 initialData={employee}
                 onSubmit={(data) => updateEmployeeMutation.mutate(data)}
+            />
+
+            <EmployeeHistoryModal
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                employee={employee}
             />
         </motion.div>
     );

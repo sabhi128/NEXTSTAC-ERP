@@ -18,11 +18,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avat
 import { Badge } from '../../../components/ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
 import { modalVariants, backdropVariants } from '../../../components/ui/animations';
+import { useQuery } from '@tanstack/react-query';
+import { mockDataService } from '../../../services/mockDataService';
 
 import nextstacBanner from '../../../assets/nextstac.png';
 
 export default function EmployeeDetailModal({ isOpen, onClose, employee }) {
     const [activeTab, setActiveTab] = useState('overview');
+
+    const { data: history, isLoading: isHistoryLoading } = useQuery({
+        queryKey: ['employeeHistory', employee?.id],
+        queryFn: () => mockDataService.getEmployeeHistory(employee.id),
+        enabled: !!employee && isOpen
+    });
 
     const getStatusVariant = (status) => {
         switch (status) {
@@ -135,6 +143,12 @@ export default function EmployeeDetailModal({ isOpen, onClose, employee }) {
                                     className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'leave' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
                                 >
                                     Leave Status
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('history')}
+                                    className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'history' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                >
+                                    History
                                 </button>
                             </div>
 
@@ -251,6 +265,48 @@ export default function EmployeeDetailModal({ isOpen, onClose, employee }) {
                                             <div className="bg-slate-800/50 border border-dashed border-slate-700/50 rounded-2xl p-8 text-center text-slate-400">
                                                 <p className="text-sm">Manage full history in <span className="font-bold text-indigo-400">Leave Management</span>.</p>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'history' && (
+                                        <div className="space-y-6">
+                                            {isHistoryLoading ? (
+                                                <div className="flex justify-center p-8"><div className="w-8 h-8 border-2 border-indigo-500 rounded-full animate-spin border-t-transparent" /></div>
+                                            ) : history && history.length > 0 ? (
+                                                <div className="relative pl-6 border-l border-white/10 space-y-8">
+                                                    {history.map((record) => (
+                                                        <div key={record.id} className="relative">
+                                                            <div className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-slate-900" />
+                                                            <div className="bg-white/5 border border-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div>
+                                                                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Promoted</span>
+                                                                        <p className="text-sm text-slate-400 ml-2 inline">{new Date(record.change_date).toLocaleDateString()}</p>
+                                                                    </div>
+                                                                    <Badge variant="outline" className="border-white/10 text-slate-400 text-[10px]">{record.changed_by || 'System'}</Badge>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                                    <div>
+                                                                        <p className="text-xs text-slate-500 mb-1">Previous Role</p>
+                                                                        <p className="font-medium text-slate-300">{record.old_position}</p>
+                                                                        <p className="text-xs text-slate-500">${Number(record.old_salary).toLocaleString()}</p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-emerald-400 mb-1">New Role</p>
+                                                                        <p className="font-bold text-white">{record.new_position}</p>
+                                                                        <p className="text-xs text-emerald-400">${Number(record.new_salary).toLocaleString()}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-8 text-slate-500 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                                                    <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                                    <p>No promotion history found.</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </motion.div>

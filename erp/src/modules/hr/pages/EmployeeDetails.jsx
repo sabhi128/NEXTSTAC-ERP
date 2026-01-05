@@ -13,9 +13,11 @@ import {
     Calendar,
     DollarSign,
     User,
-    Edit
+    Edit,
+    Shield,
+    Activity
 } from 'lucide-react';
-
+import { motion } from 'framer-motion';
 
 export default function EmployeeDetails() {
     const { id } = useParams();
@@ -45,24 +47,48 @@ export default function EmployeeDetails() {
     if (isLoading) return <div className="min-h-screen flex items-center justify-center text-slate-500 animate-pulse">Loading profile...</div>;
     if (!employee) return <div className="min-h-screen flex items-center justify-center text-slate-500">Employee not found</div>;
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
+
     return (
-        <div className="pb-12">
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="pb-12 min-h-screen bg-slate-950 relative overflow-hidden"
+        >
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-900/20 via-slate-900/10 to-slate-950 pointer-events-none" />
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-48 -left-24 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Top Navigation Bar */}
-            <div className="bg-slate-900/50 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-20">
-                <div className="max-w-4xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+            <div className="bg-slate-900/30 backdrop-blur-md border-b border-white/5 sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
                     <button
                         onClick={() => navigate('/hr/employees')}
                         className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-medium text-sm group"
                     >
-                        <div className="p-2 rounded-full bg-slate-800/50 group-hover:bg-slate-700 transition-colors">
+                        <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
                             <ArrowLeft className="w-4 h-4" />
                         </div>
                         Back to List
                     </button>
                     <button
                         onClick={() => setIsEditOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-800/50 border border-slate-700/50 text-white hover:bg-slate-700 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg hover:shadow-indigo-500/20 hover:scale-105"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-105 active:scale-95"
                     >
                         <Edit className="w-4 h-4" />
                         Edit Profile
@@ -70,121 +96,152 @@ export default function EmployeeDetails() {
                 </div>
             </div>
 
-            <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 mt-4">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 space-y-8 relative z-10">
 
-                {/* Header Card */}
-                <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden relative">
-                    <div className="h-32 md:h-48 bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 opacity-90"></div>
-                    <div className="px-6 md:px-8 pb-8">
-                        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-end -mt-12 md:-mt-16 mb-6 gap-4">
-                            <div className="flex flex-col md:flex-row items-start md:items-end gap-4 md:gap-6">
-                                <img
-                                    src={employee.avatar}
-                                    alt={employee.firstName}
-                                    className="w-24 h-24 md:w-32 md:h-32 rounded-2xl border-4 border-slate-800 shadow-2xl bg-slate-800 object-cover"
-                                />
-                                <div className="mb-1">
-                                    <h1 className="text-2xl md:text-3xl font-black text-white">{employee.firstName} {employee.lastName}</h1>
-                                    <p className="text-slate-400 font-medium text-lg">{employee.position}</p>
-                                </div>
-                            </div>
-                            <span className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide ${employee.status === 'Active'
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                }`}>
-                                {employee.status}
-                            </span>
-                        </div>
+                {/* Hero Section */}
+                <motion.div variants={itemVariants} className="relative rounded-3xl overflow-hidden border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-50" />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 border-t border-slate-700/50 pt-8">
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Contact Information</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                                            <Mail className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">{employee.email}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                                            <Phone className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">{employee.phone || 'No phone provided'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                                            <MapPin className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">{employee.address || 'No address provided'}</span>
-                                    </div>
-                                </div>
-                            </div>
+                    {/* Banner Gradient */}
+                    <div className="h-48 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+                        <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 blur-3xl opacity-50 animate-pulse" />
+                    </div>
 
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Employment Details</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-purple-500/20 group-hover:text-purple-400 transition-colors">
-                                            <Briefcase className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">{employee.department}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-purple-500/20 group-hover:text-purple-400 transition-colors">
-                                            <Calendar className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">Joined {new Date(employee.joinDate).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-slate-300 group">
-                                        <div className="p-2.5 bg-slate-700/50 rounded-xl group-hover:bg-purple-500/20 group-hover:text-purple-400 transition-colors">
-                                            <DollarSign className="w-5 h-5" />
-                                        </div>
-                                        <span className="font-medium">${parseInt(employee.salary).toLocaleString()}/yr</span>
-                                    </div>
-                                </div>
+                    <div className="px-8 pb-8 flex flex-col md:flex-row items-end gap-8 -mt-20 relative z-20">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            className="relative"
+                        >
+                            <img
+                                src={employee.avatar}
+                                alt={employee.firstName}
+                                className="w-40 h-40 rounded-3xl border-4 border-slate-950 shadow-2xl object-cover bg-slate-800"
+                            />
+                            <div className={`absolute bottom-3 right-3 w-6 h-6 rounded-full border-4 border-slate-950 ${employee.status === 'Active' ? 'bg-emerald-500' :
+                                    employee.status === 'On Leave' ? 'bg-amber-500' : 'bg-red-500'
+                                }`} />
+                        </motion.div>
+
+                        <div className="flex-1 pb-4">
+                            <motion.h1
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2"
+                            >
+                                {employee.firstName} <span className="text-slate-400">{employee.lastName}</span>
+                            </motion.h1>
+                            <div className="flex flex-wrap items-center gap-4 text-lg">
+                                <span className="text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
+                                    {employee.position}
+                                </span>
+                                <span className="text-slate-400 flex items-center gap-2">
+                                    <Briefcase className="w-4 h-4" />
+                                    {employee.department}
+                                </span>
+                                <span className="text-slate-400 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" />
+                                    {employee.address || 'Remote'}
+                                </span>
                             </div>
                         </div>
+                    </div>
+                </motion.div>
 
-                        <div className="mt-8 pt-8 border-t border-slate-700/50">
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Salary History</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column - Stats & Quick Info */}
+                    <div className="space-y-6">
+                        {/* Stats Bento Grid */}
+                        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 p-5 rounded-2xl hover:bg-white/5 transition-colors group cursor-default">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                    <Activity className="w-5 h-5" />
+                                </div>
+                                <div className="text-2xl font-black text-white">98%</div>
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attendance</div>
+                            </div>
+                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 p-5 rounded-2xl hover:bg-white/5 transition-colors group cursor-default">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                    <Calendar className="w-5 h-5" />
+                                </div>
+                                <div className="text-2xl font-black text-white">12</div>
+                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Leave Days</div>
+                            </div>
+                            <div className="col-span-2 bg-slate-900/40 backdrop-blur-xl border border-white/5 p-5 rounded-2xl hover:bg-white/5 transition-colors group cursor-default">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Annual Salary</div>
+                                        <div className="text-3xl font-black text-white tracking-tight">
+                                            ${parseInt(employee.salary).toLocaleString()}
+                                            <span className="text-lg text-slate-600 font-medium">/yr</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <DollarSign className="w-6 h-6" />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
 
+                        {/* Contact Card */}
+                        <motion.div variants={itemVariants} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <User className="w-4 h-4" /> Contact Details
+                            </h3>
+                            <div className="space-y-4">
+                                <a href={`mailto:${employee.email}`} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                                    <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                        <Mail className="w-5 h-5" />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <div className="text-xs text-slate-500">Email</div>
+                                        <div className="text-sm font-medium text-white truncate">{employee.email}</div>
+                                    </div>
+                                </a>
+                                <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                                    <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                        <Phone className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-slate-500">Phone</div>
+                                        <div className="text-sm font-medium text-white">{employee.phone || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                                    <div className="p-2 bg-pink-500/20 text-pink-400 rounded-lg group-hover:bg-pink-500 group-hover:text-white transition-all">
+                                        <Shield className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-slate-500">Emergency</div>
+                                        <div className="text-sm font-medium text-white">{employee.emergencyContact?.phone || 'N/A'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+
+                    {/* Right Column - Timeline/Salary */}
+                    <motion.div variants={itemVariants} className="lg:col-span-2 space-y-8">
+                        {/* Salary History Chart Container */}
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 h-full min-h-[400px]">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <div className="w-2 h-8 bg-indigo-500 rounded-full" />
+                                    Salary Progression
+                                </h3>
+                                <select className="bg-slate-950 border border-white/10 text-slate-300 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500">
+                                    <option>Last 12 Months</option>
+                                    <option>All Time</option>
+                                </select>
+                            </div>
                             <SalaryHistoryChart employeeId={id} />
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
-                {/* Stats Grid */}
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                    <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-xl hover:border-blue-500/30 transition-all group">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl group-hover:bg-blue-500/20 transition-colors">
-                                <Calendar className="w-6 h-6" />
-                            </div>
-                            <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20">Good</span>
-                        </div>
-                        <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Attendance Rate</p>
-                        <h4 className="text-3xl font-black text-white mt-1">98.5%</h4>
-                    </div>
-
-                    <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-xl hover:border-amber-500/30 transition-all group">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl group-hover:bg-amber-500/20 transition-colors">
-                                <User className="w-6 h-6" />
-                            </div>
-                        </div>
-                        <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Leave Balance</p>
-                        <h4 className="text-3xl font-black text-white mt-1">12 Days</h4>
-                    </div>
-
-                    <div className="bg-slate-800/20 p-6 rounded-3xl border-2 border-slate-700/50 border-dashed flex flex-col items-center justify-center text-slate-500 font-bold text-sm min-h-[160px]">
-                        <div className="w-10 h-10 bg-slate-800/50 rounded-full flex items-center justify-center mb-3">
-                            <DollarSign className="w-5 h-5 opacity-50" />
-                        </div>
-                        More metrics coming soon
-                    </div>
-                </div>
             </div>
 
             <EmployeeForm
@@ -193,6 +250,6 @@ export default function EmployeeDetails() {
                 initialData={employee}
                 onSubmit={(data) => updateEmployeeMutation.mutate(data)}
             />
-        </div>
+        </motion.div>
     );
 }

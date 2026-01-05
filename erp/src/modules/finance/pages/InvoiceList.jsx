@@ -48,7 +48,11 @@ export default function InvoiceList() {
         mutationFn: async ({ id, status }) => {
             return await api.patch(`/finance/invoices/${id}/status`, { status });
         },
-        onSuccess: () => queryClient.invalidateQueries(['invoices'])
+        onSuccess: () => queryClient.invalidateQueries(['invoices']),
+        onError: (error) => {
+            alert(`Failed to update status: ${error.message}`);
+            // console.error(error);
+        }
     });
 
     const addInvoiceMutation = useMutation({

@@ -612,12 +612,17 @@ dbAdapter.hr = {
     updateAttendance: async (id, updates) => {
         if (isVercel) {
             const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'checkIn') mapped.check_in = val;
-                else if (key === 'checkOut') mapped.check_out = val;
-                else if (key === 'workHours') mapped.work_hours = val;
-                else mapped[key] = val;
-            }
+            // Explicitly allow only editable fields and map them to snake_case
+            if (updates.checkIn !== undefined) mapped.check_in = updates.checkIn;
+            if (updates.checkOut !== undefined) mapped.check_out = updates.checkOut;
+            if (updates.status !== undefined) mapped.status = updates.status;
+            if (updates.workHours !== undefined) mapped.work_hours = updates.workHours;
+            if (updates.date !== undefined) mapped.date = updates.date;
+
+            // Ignore other fields like employeeName, employeeId to prevent schema errors
+
+            if (Object.keys(mapped).length === 0) return { id, ...updates }; // No valid updates
+
             const { error } = await supabase.from('attendance').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };

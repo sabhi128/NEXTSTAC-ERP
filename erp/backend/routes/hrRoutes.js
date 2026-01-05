@@ -27,6 +27,7 @@ router.delete('/employees/:id', hrController.deleteEmployee);
 router.get('/leaves', hrController.getAllLeaves);
 router.post('/leaves', hrController.createLeave);
 router.put('/leaves/:id/status', hrController.updateLeaveStatus);
+router.delete('/leaves/:id', hrController.deleteLeave);
 
 // Attendance
 router.get('/attendance', hrController.getAllAttendance);

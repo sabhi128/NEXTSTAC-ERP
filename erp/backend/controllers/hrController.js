@@ -328,6 +328,21 @@ export const updateLeaveStatus = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+export const deleteLeave = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Optionally add logic to only allow deleting specific statuses (e.g. only Pending)
+        // For now, allowing removal of any record if user has permission (handled by route middleware/frontend)
+
+        await dbAdapter.hr.deleteLeave(id);
+        res.json({ success: true, message: 'Leave request deleted' });
+    } catch (err) {
+        console.error('Delete Leave Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
 // --- Attendance ---
 
 export const getAllAttendance = async (req, res) => {

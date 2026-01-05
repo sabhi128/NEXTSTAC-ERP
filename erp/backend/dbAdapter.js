@@ -557,6 +557,21 @@ dbAdapter.hr = {
         }
     },
 
+    deleteLeave: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('leaves').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM leaves WHERE id = ?", [id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    },
+
     // Attendance
     getAllAttendance: async () => {
         if (isVercel) {

@@ -15,7 +15,8 @@ import {
     Filter,
     Plus,
     X,
-    Trash2
+    Trash2,
+    Eye
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Button } from '../../../components/ui/button';
@@ -42,6 +43,7 @@ export default function LeaveManagement() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [viewLeave, setViewLeave] = useState(null);
     const [newRequest, setNewRequest] = useState({
         type: 'Sick Leave',
         startDate: '',
@@ -235,7 +237,11 @@ export default function LeaveManagement() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <p className="text-slate-400 max-w-[200px] truncate" title={request.reason}>
+                                        <p
+                                            className="text-slate-400 max-w-[200px] truncate cursor-pointer hover:text-indigo-400 transition-colors"
+                                            title="Click to view full reason"
+                                            onClick={() => setViewLeave(request)}
+                                        >
                                             {request.reason}
                                         </p>
                                     </TableCell>
@@ -244,6 +250,16 @@ export default function LeaveManagement() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setViewLeave(request)}
+                                                className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-700/50"
+                                                title="View Details"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Button>
+
                                             {/* Admin Actions */}
                                             {user?.role !== 'user' && (
                                                 <>
@@ -402,6 +418,66 @@ export default function LeaveManagement() {
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* View Details Modal */}
+            {viewLeave && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 border border-slate-800">
+                        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                            <h3 className="text-lg font-bold text-white">Leave Details</h3>
+                            <Button variant="ghost" size="icon" onClick={() => setViewLeave(null)} className="h-8 w-8 rounded-full text-slate-400 hover:text-white hover:bg-slate-800">
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16 border-2 border-slate-700 shadow-md">
+                                    <AvatarImage src={viewLeave.avatar} />
+                                    <AvatarFallback className="bg-slate-800 text-slate-200 text-xl font-bold">{(viewLeave.employeeName || '?')[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h4 className="text-xl font-bold text-white">{viewLeave.employeeName}</h4>
+                                    <p className="text-slate-400">{viewLeave.department || 'Employee'}</p>
+                                    <div className="mt-2">{getStatusBadge(viewLeave.status)}</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Leave Type</p>
+                                    <p className="text-white font-medium">{viewLeave.type}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Duration</p>
+                                    <p className="text-white font-medium">{viewLeave.days} Days</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Start Date</p>
+                                    <p className="text-slate-300 font-mono">{formatDate(viewLeave.startDate)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">End Date</p>
+                                    <p className="text-slate-300 font-mono">{formatDate(viewLeave.endDate)}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Reason / Description</p>
+                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 text-slate-300 leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto custom-scrollbar">
+                                    {viewLeave.reason}
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex justify-end">
+                                <Button onClick={() => setViewLeave(null)} className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700">
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>,
                 document.body

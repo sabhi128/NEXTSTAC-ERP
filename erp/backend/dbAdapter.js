@@ -346,76 +346,99 @@ dbAdapter.hr = {
         if (updates.interResult) dbUpdates.inter_result = updates.interResult;
         if (updates.cv) dbUpdates.cv = updates.cv;
 
-        // Add updated_at timestamp
         dbUpdates.updated_at = new Date().toISOString();
 
-        // --- HISTORY TRACKING ---
-        // Before updating, check if critical fields changed.
-        try {
-            // Need the old record. Since this is inside dbAdapter.hr, we can call getEmployeeById via 'this' if bound, or direct DB call.
-            // But 'this' might be tricky. Let's do a direct DB fetch for safety (SQLite specific here as Vercel block is separate).
-
-            if (!isVercel) {
-                const oldEmp = await new Promise((resolve) => {
-                    db.get(`SELECT * FROM employees WHERE id = ?`, [id], (err, row) => resolve(row));
-                });
-
-                if (oldEmp) {
-                    const changes = [];
-                    // Check Position
-                    if (updates.position && updates.position !== oldEmp.position) changes.push('position');
-                    // Check Level (Promotion)
-                    if (updates.promotionLevel && updates.promotionLevel !== oldEmp.promotion_level) changes.push('level');
-                    // Check Salary
-                    if (updates.salary && String(updates.salary) !== String(oldEmp.salary)) changes.push('salary');
-                    // Check Department
-                    if (updates.department && updates.department !== oldEmp.department_name) changes.push('department');
-
-                    if (changes.length > 0) {
-                        // Insert History
-                        const { v4: uuidv4 } = await import('uuid');
-                        const historyId = uuidv4();
-                        const changeDate = new Date().toISOString();
-                        const changedBy = updates.updatedBy || 'System'; // Pass updatedBy from controller if available
-
-                        await new Promise((resolve, reject) => {
-                            db.run(`INSERT INTO employee_history 
-                                (id, employee_id, old_position, old_level, old_salary, old_department, new_position, new_level, new_salary, new_department, change_date, changed_by)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                                [
-                                    historyId,
-                                    id,
-                                    oldEmp.position,
-                                    oldEmp.promotion_level,
-                                    oldEmp.salary,
-                                    oldEmp.department_name,
-                                    updates.position || oldEmp.position,
-                                    updates.promotionLevel || oldEmp.promotion_level,
-                                    updates.salary || oldEmp.salary,
-                                    updates.department || oldEmp.department_name,
-                                    changeDate,
-                                    changedBy
-                                ],
-                                (err) => {
-                                    if (err) console.error("History Insert Error:", err); // Log but don't fail update?
-                                    resolve();
-                                }
-                            );
-                        });
-                    }
-                }
-            }
-        } catch (e) {
-            console.error("History Tracking Error:", e);
-        }
-
         if (isVercel) {
-            // ... (Keep Vercel logic mostly same or assume user is Local)
             if (!supabase) throw new Error('Supabase client not initialized');
+
+            // 1. Fetch Old Data for History
+            const { data: oldEmp, error: fetchError } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (fetchError) console.error("Error fetching old employee data:", fetchError);
+
+            // 2. Perform Update
             const { data, error } = await supabase.from('employees').update(dbUpdates).eq('id', id).select();
             if (error) throw new Error(error.message);
+
+            // 3. Compare and Insert History
+            if (oldEmp) {
+                const changes = [];
+                // Check Position/Department/Salary/Level
+                // Note: dbUpdates keys are snake_case, updates keys are camelCase. 
+                // We compare updates.position vs oldEmp.position
+                if (updates.position && updates.position !== oldEmp.position) changes.push('position');
+                if (updates.promotionLevel && updates.promotionLevel !== oldEmp.promotion_level) changes.push('level');
+                if (updates.salary && String(updates.salary) !== String(oldEmp.salary)) changes.push('salary');
+                if (updates.department && updates.department !== oldEmp.department_name) changes.push('department');
+
+                if (changes.length > 0) {
+                    const historyPayload = {
+                        employee_id: id,
+                        old_position: oldEmp.position,
+                        old_level: oldEmp.promotion_level,
+                        old_salary: oldEmp.salary,
+                        old_department: oldEmp.department_name,
+                        new_position: updates.position || oldEmp.position,
+                        new_level: updates.promotionLevel || oldEmp.promotion_level,
+                        new_salary: updates.salary || oldEmp.salary,
+                        new_department: updates.department || oldEmp.department_name,
+                        changed_by: updates.updatedBy || 'System'
+                    };
+                    const { error: historyError } = await supabase.from('employee_history').insert([historyPayload]);
+                    if (historyError) console.error("Supabase History Insert Error:", historyError);
+                }
+            }
+
             return data[0];
         } else {
+            // ... SQLite Implementation (Keeping existing logic for local dev) ...
+            // --- HISTORY TRACKING ---
+            // Before updating, check if critical fields changed.
+            try {
+                if (!isVercel) {
+                    const oldEmp = await new Promise((resolve) => {
+                        db.get(`SELECT * FROM employees WHERE id = ?`, [id], (err, row) => resolve(row));
+                    });
+
+                    if (oldEmp) {
+                        const changes = [];
+                        if (updates.position && updates.position !== oldEmp.position) changes.push('position');
+                        if (updates.promotionLevel && updates.promotionLevel !== oldEmp.promotion_level) changes.push('level');
+                        if (updates.salary && String(updates.salary) !== String(oldEmp.salary)) changes.push('salary');
+                        if (updates.department && updates.department !== oldEmp.department_name) changes.push('department');
+
+                        if (changes.length > 0) {
+                            const { v4: uuidv4 } = await import('uuid');
+                            const historyId = uuidv4();
+                            const changeDate = new Date().toISOString();
+                            const changedBy = updates.updatedBy || 'System';
+
+                            await new Promise((resolve, reject) => {
+                                db.run(`INSERT INTO employee_history 
+                                    (id, employee_id, old_position, old_level, old_salary, old_department, new_position, new_level, new_salary, new_department, change_date, changed_by)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                    [
+                                        historyId, id, oldEmp.position, oldEmp.promotion_level, oldEmp.salary, oldEmp.department_name,
+                                        updates.position || oldEmp.position, updates.promotionLevel || oldEmp.promotion_level, updates.salary || oldEmp.salary, updates.department || oldEmp.department_name,
+                                        changeDate, changedBy
+                                    ],
+                                    (err) => {
+                                        if (err) console.error("History Insert Error:", err);
+                                        resolve();
+                                    }
+                                );
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("History Tracking Error:", e);
+            }
+
             // Generate dynamic SQL for SQLite
             const keys = Object.keys(dbUpdates);
             const values = Object.values(dbUpdates);
@@ -432,8 +455,15 @@ dbAdapter.hr = {
 
     getEmployeeHistory: async (id) => {
         if (isVercel) {
-            // Supabase implementation needed if migrating
-            return [];
+            if (!supabase) throw new Error('Supabase client not initialized');
+            const { data, error } = await supabase
+                .from('employee_history')
+                .select('*')
+                .eq('employee_id', id)
+                .order('change_date', { ascending: false });
+
+            if (error) throw new Error(error.message);
+            return data;
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT * FROM employee_history WHERE employee_id = ? ORDER BY change_date DESC`, [id], (err, rows) => {

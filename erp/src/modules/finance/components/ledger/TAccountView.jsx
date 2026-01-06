@@ -84,9 +84,9 @@ const TAccountView = ({ account, transactions, onClose }) => {
                                 <div key={t.id} className="flex justify-between items-center text-sm group hover:bg-emerald-500/10 p-3 rounded-lg border border-transparent hover:border-emerald-500/30 transition-all">
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{new Date(t.date).toLocaleDateString()}</span>
-                                        <span className="text-slate-200 font-bold truncate max-w-[150px] md:max-w-[200px]" title={t.description}>{t.description}</span>
+                                        <span className="text-slate-200 font-bold break-words" title={t.description}>{t.description}</span>
                                     </div>
-                                    <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 shadow-[0_0_5px_rgba(52,211,153,0.3)]">
+                                    <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 shadow-[0_0_5px_rgba(52,211,153,0.3)] shrink-0 ml-2">
                                         ${parseFloat(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
@@ -102,12 +102,12 @@ const TAccountView = ({ account, transactions, onClose }) => {
                         <div className="w-full md:w-1/2 pl-0 md:pl-6 space-y-3">
                             {transactionsWithBalance.filter(t => !t.isDebit).map(t => (
                                 <div key={t.id} className="flex justify-between items-center text-sm group hover:bg-rose-500/10 p-3 rounded-lg border border-transparent hover:border-rose-500/30 transition-all">
-                                    <span className="font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 shadow-[0_0_5px_rgba(251,113,133,0.3)]">
+                                    <span className="font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 shadow-[0_0_5px_rgba(251,113,133,0.3)] shrink-0 mr-2">
                                         ${parseFloat(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </span>
                                     <div className="flex flex-col items-end">
                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{new Date(t.date).toLocaleDateString()}</span>
-                                        <span className="text-slate-200 font-bold truncate max-w-[150px] md:max-w-[200px] text-right" title={t.description}>{t.description}</span>
+                                        <span className="text-slate-200 font-bold break-words text-right" title={t.description}>{t.description}</span>
                                     </div>
                                 </div>
                             ))}

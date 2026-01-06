@@ -117,7 +117,7 @@ const LedgerDashboard = ({ onAccountClick, accounts }) => {
 
                                     {/* Content */}
                                     <div className="mb-6">
-                                        <h4 className="font-bold text-white text-lg mb-1 truncate">{account.name}</h4>
+                                        <h4 className="font-bold text-white text-lg mb-1 line-clamp-2 h-[3.5rem] leading-7" title={account.name}>{account.name}</h4>
                                         <p className="text-xs text-slate-500 font-mono">ID: #{account.id.substring(0, 8)}</p>
                                     </div>
 

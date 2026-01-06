@@ -38,10 +38,13 @@ export default function InvoiceList() {
     });
 
     const deleteInvoiceMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deleteInvoice(id)), 300)),
+        mutationFn: async (id) => await api.delete(`/finance/invoices/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['invoices']);
             setDeleteModal({ isOpen: false, id: null });
+        },
+        onError: (error) => {
+            alert(`Failed to delete invoice: ${error.message}`);
         }
     });
 

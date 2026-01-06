@@ -125,10 +125,8 @@ export const updateInvoiceStatus = async (req, res) => {
 
 export const deleteInvoice = async (req, res) => {
     try {
-        await dbAdapter.finance.deleteInvoice(req.params.id); // Included this? 
-        // Checking... I implemented deletePayment but NOT deleteInvoice in previous step.
-        // My bad.
-        res.status(501).json({ error: "Delete Invoice not supported yet" });
+        await dbAdapter.finance.deleteInvoice(req.params.id);
+        res.json({ message: 'Deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

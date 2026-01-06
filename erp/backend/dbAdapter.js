@@ -764,14 +764,19 @@ dbAdapter.inventory = {
 
     deleteProduct: async (id) => {
         if (isVercel) {
+            // Cascade delete movements first
+            await supabase.from('stock_movements').delete().eq('product_id', id);
             const { error } = await supabase.from('products').delete().eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
             return new Promise((resolve, reject) => {
-                db.run("DELETE FROM products WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
+                db.serialize(() => {
+                    db.run("DELETE FROM stock_movements WHERE product_id = ?", [id]);
+                    db.run("DELETE FROM products WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
                 });
             });
         }

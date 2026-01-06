@@ -16,7 +16,8 @@ import {
     Trash2,
     CheckCircle2,
     LayoutList,
-    Building2 // Added icon
+    Building2, // Added icon
+    Edit
 } from 'lucide-react';
 
 
@@ -70,6 +71,9 @@ export default function ProductList() {
             queryClient.invalidateQueries(['products']);
             setIsDeleteModalOpen(false);
             setProductToDelete(null);
+        },
+        onError: (error) => {
+            alert(`Failed to delete product: ${error.message || 'Unknown error'}`);
         }
     });
 
@@ -352,8 +356,9 @@ export default function ProductList() {
                                                     <button
                                                         onClick={() => handleEditProduct(product)}
                                                         className="text-slate-500 hover:text-indigo-400 p-2 hover:bg-indigo-500/10 rounded-lg transition-all active:scale-90"
+                                                        title="Edit Product"
                                                     >
-                                                        <MoreHorizontal className="w-4 h-4" />
+                                                        <Edit className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>

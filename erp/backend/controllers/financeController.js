@@ -178,6 +178,15 @@ export const updatePaymentStatus = async (req, res) => {
     }
 };
 
+export const updatePayment = async (req, res) => {
+    try {
+        const result = await dbAdapter.finance.updatePayment(req.params.id, req.body);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const deletePayment = async (req, res) => {
     try {
         await dbAdapter.finance.deletePayment(req.params.id);

@@ -25,6 +25,7 @@ router.delete('/invoices/:id', financeController.deleteInvoice);
 router.get('/payments', financeController.getPayments);
 router.post('/payments', financeController.createPayment);
 router.patch('/payments/:id/status', financeController.updatePaymentStatus);
+router.patch('/payments/:id', financeController.updatePayment);
 router.delete('/payments/:id', financeController.deletePayment);
 
 export default router;

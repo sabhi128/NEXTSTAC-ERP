@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import {
     CreditCard,
     Plus,
@@ -11,7 +12,8 @@ import {
     ArrowUpRight,
     X,
     Check,
-    Trash2
+    Trash2,
+    Edit2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -22,6 +24,7 @@ import PaymentStatusToggle from '../components/payment/PaymentStatusToggle';
 export default function PaymentList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -39,24 +42,40 @@ export default function PaymentList() {
     });
 
     const addPaymentMutation = useMutation({
-        mutationFn: mockDataService.addPayment,
+        mutationFn: async (data) => {
+            return await api.post('/finance/payments', data);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries(['payments']);
-            setIsModalOpen(false);
-            setFormData({ vendor: '', amount: '', method: 'Bank Transfer' });
-        }
+            closeModal();
+        },
+        onError: (err) => alert(`Failed to add payment: ${err.message}`)
+    });
+
+    const updatePaymentMutation = useMutation({
+        mutationFn: async ({ id, ...data }) => {
+            return await api.patch(`/finance/payments/${id}`, data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['payments']);
+            closeModal();
+        },
+        onError: (err) => alert(`Failed to update payment: ${err.message}`)
     });
 
     const deletePaymentMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deletePayment(id)), 300)),
+        mutationFn: async (id) => await api.delete(`/finance/payments/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['payments']);
             setDeleteModal({ isOpen: false, id: null });
-        }
+        },
+        onError: (err) => alert(`Failed to delete payment: ${err.message}`)
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updatePaymentStatus(id, status)), 300)),
+        mutationFn: async ({ id, status }) => {
+            return await api.patch(`/finance/payments/${id}/status`, { status });
+        },
         onSuccess: () => queryClient.invalidateQueries(['payments'])
     });
 
@@ -67,13 +86,40 @@ export default function PaymentList() {
         return matchesSearch && matchesStatus;
     });
 
+    const openModal = (payment = null) => {
+        if (payment) {
+            setEditingPayment(payment);
+            setFormData({
+                vendor: payment.vendor,
+                amount: payment.amount,
+                method: payment.method
+            });
+        } else {
+            setEditingPayment(null);
+            setFormData({ vendor: '', amount: '', method: 'Bank Transfer' });
+        }
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingPayment(null);
+        setFormData({ vendor: '', amount: '', method: 'Bank Transfer' });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        addPaymentMutation.mutate({
+        const payload = {
             vendor: formData.vendor,
             amount: parseFloat(formData.amount),
             method: formData.method
-        });
+        };
+
+        if (editingPayment) {
+            updatePaymentMutation.mutate({ id: editingPayment.id, ...payload });
+        } else {
+            addPaymentMutation.mutate(payload);
+        }
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-400 font-medium animate-pulse">Loading payments...</div>;
@@ -86,9 +132,11 @@ export default function PaymentList() {
                 <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-slate-900/95 backdrop-blur-2xl w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-700/50 animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-5 bg-slate-900/50 border-b border-slate-700/50 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-white">Record New Payment</h3>
+                            <h3 className="text-xl font-bold text-white">
+                                {editingPayment ? 'Edit Payment' : 'Record New Payment'}
+                            </h3>
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={closeModal}
                                 className="p-2 hover:bg-slate-800 rounded-full transition-colors group"
                             >
                                 <X className="w-5 h-5 text-slate-400 group-hover:text-white" />
@@ -142,13 +190,13 @@ export default function PaymentList() {
                             <div className="pt-2">
                                 <button
                                     type="submit"
-                                    disabled={addPaymentMutation.isPending}
+                                    disabled={addPaymentMutation.isPending || updatePaymentMutation.isPending}
                                     className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
                                 >
-                                    {addPaymentMutation.isPending ? 'Processing...' : (
+                                    {addPaymentMutation.isPending || updatePaymentMutation.isPending ? 'Processing...' : (
                                         <>
                                             <Check className="w-5 h-5" />
-                                            Confirm Payment
+                                            {editingPayment ? 'Save Changes' : 'Confirm Payment'}
                                         </>
                                     )}
                                 </button>
@@ -166,7 +214,7 @@ export default function PaymentList() {
                         <p className="text-slate-400 text-sm mt-1">Track outgoing payments to vendors</p>
                     </div>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => openModal()}
                         className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]"
                     >
                         <Plus className="w-5 h-5" />
@@ -248,7 +296,7 @@ export default function PaymentList() {
                                         <td className="px-6 py-4 font-mono font-bold text-emerald-400 border-r border-slate-700/50 group-hover:border-slate-700/80 transition-colors">
                                             {payment.paymentNumber}
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-white">{payment.vendor}</td>
+                                        <td className="px-6 py-4 font-bold text-white max-w-[200px] truncate">{payment.vendor}</td>
                                         <td className="px-6 py-4 text-slate-400 font-medium">
                                             {new Date(payment.date).toLocaleDateString()}
                                         </td>
@@ -271,13 +319,22 @@ export default function PaymentList() {
                                             />
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => setDeleteModal({ isOpen: true, id: payment.id })}
-                                                className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                                title="Delete Payment"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => openModal(payment)}
+                                                    className="p-2 hover:bg-indigo-500/10 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors"
+                                                    title="Edit Details"
+                                                >
+                                                    <Edit2 className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeleteModal({ isOpen: true, id: payment.id })}
+                                                    className="p-2 hover:bg-red-500/10 rounded-xl text-slate-500 hover:text-red-400 transition-colors"
+                                                    title="Delete Payment"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -295,7 +352,7 @@ export default function PaymentList() {
                                     <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1 font-mono">
                                         {payment.paymentNumber}
                                     </div>
-                                    <div className="font-extrabold text-white text-lg">{payment.vendor}</div>
+                                    <div className="font-extrabold text-white text-lg line-clamp-1">{payment.vendor}</div>
                                 </div>
                                 <PaymentStatusToggle
                                     currentStatus={payment.status}
@@ -326,12 +383,20 @@ export default function PaymentList() {
                                     <CreditCard className="w-4 h-4" />
                                     {payment.method}
                                 </div>
-                                <button
-                                    onClick={() => setDeleteModal({ isOpen: true, id: payment.id })}
-                                    className="p-2 hover:bg-red-500/10 rounded-xl text-slate-500 hover:text-red-400 transition-colors"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => openModal(payment)}
+                                        className="p-2 hover:bg-indigo-500/10 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors"
+                                    >
+                                        <Edit2 className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => setDeleteModal({ isOpen: true, id: payment.id })}
+                                        className="p-2 hover:bg-red-500/10 rounded-xl text-slate-500 hover:text-red-400 transition-colors"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}

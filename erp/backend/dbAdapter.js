@@ -992,6 +992,34 @@ dbAdapter.finance = {
                 });
             });
         }
+    },
+
+    updatePayment: async (id, updates) => {
+        if (isVercel) {
+            const mapped = {};
+            for (const [key, val] of Object.entries(updates)) {
+                if (key === 'paymentNumber') mapped.payment_number = val;
+                else mapped[key] = val;
+            }
+            const { error } = await supabase.from('payments').update(mapped).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({});
+                const fields = keys.map((key) => {
+                    if (key === 'paymentNumber') return 'payment_number = ?';
+                    return `${key} = ?`;
+                });
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+                db.run(`UPDATE payments SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
     }
 };
 

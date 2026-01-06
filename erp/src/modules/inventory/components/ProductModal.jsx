@@ -24,6 +24,7 @@ export default function ProductModal({ isOpen, onClose, product, onSubmit }) {
                 stock: product.stock,
                 minStock: product.minStock,
                 supplier: product.supplier || '',
+                warehouse: product.warehouse || 'Main Warehouse',
                 status: product.status || 'Active'
             });
         } else {
@@ -35,6 +36,7 @@ export default function ProductModal({ isOpen, onClose, product, onSubmit }) {
                 stock: '',
                 minStock: '10',
                 supplier: '',
+                warehouse: 'Main Warehouse',
                 status: 'Active'
             });
         }
@@ -95,16 +97,14 @@ export default function ProductModal({ isOpen, onClose, product, onSubmit }) {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Category</label>
-                            <select
+                            <input
+                                type="text"
+                                required
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-white transition-all appearance-none cursor-pointer"
-                            >
-                                <option className="bg-slate-800 text-white">Electronics</option>
-                                <option className="bg-slate-800 text-white">Office Supplies</option>
-                                <option className="bg-slate-800 text-white">Furniture</option>
-                                <option className="bg-slate-800 text-white">Accessories</option>
-                            </select>
+                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-white placeholder:text-slate-600 transition-all"
+                                placeholder="e.g. Electronics"
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -165,6 +165,17 @@ export default function ProductModal({ isOpen, onClose, product, onSubmit }) {
                                 <option value="Draft" className="bg-slate-800 text-white">Draft</option>
                                 <option value="Archived" className="bg-slate-800 text-white">Archived</option>
                             </select>
+                        </div>
+
+                        <div className="space-y-2 col-span-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Warehouse</label>
+                            <input
+                                type="text"
+                                value={formData.warehouse}
+                                onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
+                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-white placeholder:text-slate-600 transition-all"
+                                placeholder="e.g. Main Warehouse"
+                            />
                         </div>
                     </div>
 

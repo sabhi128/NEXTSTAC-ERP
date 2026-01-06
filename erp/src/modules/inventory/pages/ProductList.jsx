@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api'; // Changed import
 import ProductModal from '../components/ProductModal';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import ProductStatusToggle from '../components/ProductStatusToggle';
@@ -15,7 +15,8 @@ import {
     AlertTriangle,
     Trash2,
     CheckCircle2,
-    LayoutList
+    LayoutList,
+    Building2 // Added icon
 } from 'lucide-react';
 
 
@@ -37,17 +38,11 @@ export default function ProductList() {
 
     const { data: products, isLoading } = useQuery({
         queryKey: ['products'],
-        queryFn: mockDataService.getProducts,
+        queryFn: () => api.get('/inventory/products'), // API call
     });
 
     const addProductMutation = useMutation({
-        mutationFn: (data) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.addProduct({ ...data, status: 'Active' }));
-                }, 300);
-            });
-        },
+        mutationFn: (data) => api.post('/inventory/products', { ...data, status: 'Active' }), // API call
         onSuccess: () => {
             queryClient.invalidateQueries(['products']);
             setIsModalOpen(false);
@@ -55,13 +50,7 @@ export default function ProductList() {
     });
 
     const updateProductMutation = useMutation({
-        mutationFn: ({ id, data }) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.updateProduct(id, data));
-                }, 300);
-            });
-        },
+        mutationFn: ({ id, data }) => api.put(`/inventory/products/${id}`, data), // API call
         onSuccess: () => {
             queryClient.invalidateQueries(['products']);
             setIsModalOpen(false);
@@ -69,32 +58,22 @@ export default function ProductList() {
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.updateProduct(id, { status }));
-                }, 300);
-            });
-        },
+        mutationFn: ({ id, status }) => api.put(`/inventory/products/${id}`, { status }), // API call
         onSuccess: () => {
             queryClient.invalidateQueries(['products']);
         }
     });
 
     const deleteProductMutation = useMutation({
-        mutationFn: (id) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.deleteProduct(id));
-                }, 300);
-            });
-        },
+        mutationFn: (id) => api.delete(`/inventory/products/${id}`), // API call
         onSuccess: () => {
             queryClient.invalidateQueries(['products']);
             setIsDeleteModalOpen(false);
             setProductToDelete(null);
         }
     });
+
+    // ... (handlers remain same)
 
     const handleEditProduct = (product) => {
         setSelectedProduct(product);
@@ -297,12 +276,14 @@ export default function ProductList() {
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs">Product Name</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs">SKU</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs">Category</th>
+                                    <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs">Warehouse</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs text-right">Price</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs text-center">Stock</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs">Status</th>
                                     <th className="px-6 py-5 font-bold text-slate-400 uppercase tracking-widest text-xs text-right">Actions</th>
                                 </tr>
                             </thead>
+
                             <tbody className="divide-y divide-slate-700/50">
                                 {filteredProducts?.length === 0 ? (
                                     <tr>
@@ -333,6 +314,12 @@ export default function ProductList() {
                                                 <span className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300">
                                                     {product.category}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-400">
+                                                <div className="flex items-center gap-2">
+                                                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                                                    <span className="text-xs font-medium">{product.warehouse || 'Main Warehouse'}</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-emerald-400 font-bold text-right font-mono">${product.price.toFixed(2)}</td>
                                             <td className="px-6 py-4 text-center">
@@ -378,6 +365,6 @@ export default function ProductList() {
                     </div>
                 </div>
             </div>
-        </motion.div>
+        </motion.div >
     );
 }

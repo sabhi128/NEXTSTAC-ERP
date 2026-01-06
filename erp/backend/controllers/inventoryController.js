@@ -13,6 +13,7 @@ export const getProducts = async (req, res) => {
             price: r.price,
             stock: r.stock,
             minStock: r.min_stock || r.minStock,
+            warehouse: r.warehouse,
             supplier: r.supplier,
             status: r.status,
             lastUpdated: r.last_updated || r.lastUpdated || r.created_at
@@ -25,7 +26,7 @@ export const getProducts = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
-    const { name, sku, category, price, stock, minStock, status, supplier } = req.body;
+    const { name, sku, category, price, stock, minStock, status, supplier, warehouse } = req.body;
     const id = uuidv4();
     const lastUpdated = new Date().toISOString();
 
@@ -37,6 +38,7 @@ export const createProduct = async (req, res) => {
         price,
         stock: stock || 0,
         minStock: minStock || 10,
+        warehouse: warehouse || 'Main Warehouse',
         status: status || 'Active',
         supplier,
         lastUpdated
@@ -70,6 +72,7 @@ export const updateProduct = async (req, res) => {
             price: updatedProduct.price,
             stock: updatedProduct.stock,
             minStock: updatedProduct.min_stock || updatedProduct.minStock,
+            warehouse: updatedProduct.warehouse,
             supplier: updatedProduct.supplier,
             status: updatedProduct.status,
             lastUpdated: updatedProduct.last_updated || updatedProduct.lastUpdated

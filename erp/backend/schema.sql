@@ -56,6 +56,7 @@ CREATE TABLE products (
     min_stock INTEGER DEFAULT 10, -- Added matching local
     stock INTEGER DEFAULT 0, -- Added matching local 'stock' vs 'stock_quantity'
     supplier VARCHAR(255),
+    warehouse VARCHAR(100) DEFAULT 'Main Warehouse', -- Added for multi-warehouse support
     status VARCHAR(50), -- Added
     last_updated TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

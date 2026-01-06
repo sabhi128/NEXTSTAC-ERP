@@ -704,6 +704,7 @@ dbAdapter.inventory = {
                 price: product.price,
                 stock: product.stock,
                 min_stock: product.minStock,
+                warehouse: product.warehouse,
                 supplier: product.supplier,
                 status: product.status,
                 last_updated: product.lastUpdated
@@ -713,8 +714,8 @@ dbAdapter.inventory = {
             return product;
         } else {
             return new Promise((resolve, reject) => {
-                const stmt = db.prepare("INSERT INTO products (id, name, sku, category, price, stock, min_stock, supplier, status, last_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                stmt.run(product.id, product.name, product.sku, product.category, product.price, product.stock, product.minStock, product.supplier, product.status, product.lastUpdated, function (err) {
+                const stmt = db.prepare("INSERT INTO products (id, name, sku, category, price, stock, min_stock, warehouse, supplier, status, last_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                stmt.run(product.id, product.name, product.sku, product.category, product.price, product.stock, product.minStock, product.warehouse, product.supplier, product.status, product.lastUpdated, function (err) {
                     if (err) reject(err);
                     else resolve(product);
                 });

@@ -18,6 +18,9 @@ import documentRoutes from './routes/documentRoutes.js';
 import dbAdapter from './dbAdapter.js';
 import db from './db.js'; // Import the db export (which might be Pool or Client wrapper)
 
+const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.get('/api/fix-schema', async (req, res) => {
     try {
         console.log("🛠 Attempting Schema Fix...");

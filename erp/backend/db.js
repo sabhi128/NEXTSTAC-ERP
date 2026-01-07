@@ -194,6 +194,22 @@ async function initSchemaPostgres(pool) {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Migration: Add warehouse if missing
+        await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS warehouse TEXT`);
+
+        await client.query(`CREATE TABLE IF NOT EXISTS stock_movements (
+            id TEXT PRIMARY KEY,
+            product_id TEXT,
+            type TEXT CHECK(type IN ('In', 'Out', 'Adjustment')),
+            quantity INTEGER,
+            warehouse TEXT,
+            reference_code TEXT,
+            reason TEXT,
+            date TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )`);
+
         // Finance
         await client.query(`CREATE TABLE IF NOT EXISTS invoices (
             id TEXT PRIMARY KEY,

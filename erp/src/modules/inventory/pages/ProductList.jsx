@@ -37,7 +37,7 @@ export default function ProductList() {
 
     const queryClient = useQueryClient();
 
-    const { data: products, isLoading } = useQuery({
+    const { data: products, isLoading, error } = useQuery({
         queryKey: ['products'],
         queryFn: () => api.get('/inventory/products'), // API call
     });
@@ -160,6 +160,20 @@ export default function ProductList() {
             />
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 w-full">
+                {/* DEBUG PANEL - REMOVE AFTER FIXING */}
+                <div className="bg-red-900/50 border border-red-500 p-4 rounded-lg text-red-200 font-mono text-xs overflow-auto">
+                    <h3 className="font-bold border-b border-red-500/50 mb-2">🚀 DEPLOYMENT DEBUGGER</h3>
+                    <p><strong>Is Loading:</strong> {isLoading ? 'YES' : 'NO'}</p>
+                    <p><strong>Has Data:</strong> {products ? 'YES' : 'NO'}</p>
+                    <p><strong>Data Count:</strong> {products?.length || 0}</p>
+                    <p><strong>API Endpoint:</strong> /api/inventory/products</p>
+                    <p><strong>UseQuery Error:</strong> {JSON.stringify(error?.message || 'None')}</p>
+                    <div className="mt-2 text-slate-400">
+                        <p><strong>First Item Sample:</strong></p>
+                        <pre>{JSON.stringify(products?.[0] || 'No Data', null, 2)}</pre>
+                    </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-white tracking-tight">Products</h2>

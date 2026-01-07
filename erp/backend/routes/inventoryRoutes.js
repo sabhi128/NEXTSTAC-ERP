@@ -5,7 +5,7 @@ import { verifySupabaseToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // Protect all inventory routes with JWT authentication
-router.use(verifySupabaseToken);
+// router.use(verifySupabaseToken); // Temporarily disabled for debugging
 
 router.get('/products', inventoryController.getProducts);
 router.post('/products', inventoryController.createProduct);

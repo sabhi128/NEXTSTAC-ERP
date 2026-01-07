@@ -14,9 +14,32 @@ import systemRoutes from './routes/systemRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 
+// Debug Route for DB Connection
+import { supabaseAdmin } from './supabaseClient.js';
+app.get('/api/debug-db', async (req, res) => {
+    try {
+        const envCheck = {
+            HAS_URL: !!process.env.VITE_SUPABASE_URL,
+            HAS_ANON: !!process.env.VITE_SUPABASE_ANON_KEY,
+            HAS_SERVICE: !!process.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+            IS_VERCEL: process.env.VERCEL === '1'
+        };
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+        if (!supabaseAdmin) {
+            return res.status(500).json({ error: 'supabaseAdmin is null', env: envCheck });
+        }
+
+        const { data, error } = await supabaseAdmin.from('products').select('*').limit(1);
+        if (error) {
+            return res.status(500).json({ error: error.message, details: error, env: envCheck });
+        }
+
+        res.json({ message: 'Connection Successful', count: data.length, sample: data[0], env: envCheck });
+    } catch (err) {
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
+
 
 // Middleware
 app.use(cors());

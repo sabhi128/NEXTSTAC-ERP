@@ -14,6 +14,9 @@ import systemRoutes from './routes/systemRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 
+const app = express();
+const PORT = process.env.PORT || 5000;
+
 // Debug Route for DB Connection
 import { supabaseAdmin } from './supabaseClient.js';
 app.get('/api/debug-db', async (req, res) => {

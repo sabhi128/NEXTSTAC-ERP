@@ -14,8 +14,41 @@ import systemRoutes from './routes/systemRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// Schema Fix Route (Run once to patch DB)
+import dbAdapter from './dbAdapter.js';
+import db from './db.js'; // Import the db export (which might be Pool or Client wrapper)
+
+app.get('/api/fix-schema', async (req, res) => {
+    try {
+        console.log("🛠 Attempting Schema Fix...");
+        const isVercel = process.env.VERCEL === '1';
+
+        if (!isVercel) {
+            return res.json({ message: "This is for Vercel deployment update only." });
+        }
+
+        // We need direct client access. db.js exports default db.
+        // If db is a Pool (pg), we can connect.
+
+        // This relies on db.js implementation. 
+        // Let's assume we can import the Pool from db.js or just create a new one here if needed?
+        // Actually, let's use the same query method if exposed.
+        // db.js exports: export default (isVercel ? pool : sqliteDb)
+
+        // So 'db' IS the pool on Vercel.
+        const client = await db.connect();
+        try {
+            await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS warehouse TEXT");
+            await client.query("NOTIFY pgrst, 'reload config'");
+            res.json({ success: true, message: "Added warehouse column and reloaded cache." });
+        } finally {
+            client.release();
+        }
+
+    } catch (err) {
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
 
 
 // Middleware

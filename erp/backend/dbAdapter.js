@@ -931,8 +931,7 @@ dbAdapter.inventory = {
     }
 };
 
-// Compatibility Alias
-dbAdapter.inventory = dbAdapter;
+
 
 // --- Finance Operations ---
 dbAdapter.finance = {

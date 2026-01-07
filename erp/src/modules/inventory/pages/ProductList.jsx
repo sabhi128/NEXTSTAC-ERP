@@ -16,8 +16,8 @@ import {
     Trash2,
     CheckCircle2,
     LayoutList,
-    Building2, // Added icon
-    Edit
+    Building2,
+    Pencil // Changed from Edit
 } from 'lucide-react';
 
 
@@ -355,10 +355,10 @@ export default function ProductList() {
                                                     </button>
                                                     <button
                                                         onClick={() => handleEditProduct(product)}
-                                                        className="text-slate-500 hover:text-indigo-400 p-2 hover:bg-indigo-500/10 rounded-lg transition-all active:scale-90"
-                                                        title="Edit Product"
+                                                        className="flex items-center gap-2 px-3 py-1.5 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-all active:scale-95 text-xs font-bold border border-indigo-500/20"
                                                     >
-                                                        <Edit className="w-4 h-4" />
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                        Edit
                                                     </button>
                                                 </div>
                                             </td>

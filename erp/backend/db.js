@@ -210,6 +210,14 @@ async function initSchemaPostgres(pool) {
             FOREIGN KEY(product_id) REFERENCES products(id)
         )`);
 
+        // Reload PostgREST Cache (Fix for 'schema cache' error)
+        try {
+            await client.query("NOTIFY pgrst, 'reload config'");
+            console.log("✅ Triggered PostgREST Schema Cache Reload");
+        } catch (e) {
+            console.warn("⚠️ Could not reload PostgREST cache (might need specific permissions):", e.message);
+        }
+
         // Finance
         await client.query(`CREATE TABLE IF NOT EXISTS invoices (
             id TEXT PRIMARY KEY,

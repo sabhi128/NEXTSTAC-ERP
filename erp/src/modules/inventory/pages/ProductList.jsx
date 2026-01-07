@@ -55,6 +55,9 @@ export default function ProductList() {
         onSuccess: () => {
             queryClient.invalidateQueries(['products']);
             setIsModalOpen(false);
+        },
+        onError: (error) => {
+            alert(`Failed to update product: ${error.message}`);
         }
     });
 

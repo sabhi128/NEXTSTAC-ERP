@@ -694,6 +694,36 @@ dbAdapter.inventory = {
         }
     },
 
+    findProductByName: async (name) => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('products').select('*').eq('name', name).single();
+            if (error && error.code !== 'PGRST116') throw new Error(error.message);
+            return data;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.get("SELECT * FROM products WHERE name = ?", [name], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+        }
+    },
+
+    findProductByName: async (name) => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('products').select('*').eq('name', name).single();
+            if (error && error.code !== 'PGRST116') throw new Error(error.message);
+            return data;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.get("SELECT * FROM products WHERE name = ?", [name], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+        }
+    },
+
     createProduct: async (product) => {
         if (isVercel) {
             const payload = {
@@ -781,7 +811,128 @@ dbAdapter.inventory = {
             });
         }
     }
+    ,
+
+    getStockMovements: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase
+                .from('stock_movements')
+                .select(`
+                    *,
+                    products ( name )
+                `)
+                .order('date', { ascending: false });
+
+            if (error) throw new Error(error.message);
+
+            return data.map(m => ({
+                ...m,
+                product_name: m.products?.name,
+                products: undefined
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = `
+                    SELECT sm.*, p.name as product_name
+                    FROM stock_movements sm
+                    LEFT JOIN products p ON sm.product_id = p.id
+                    ORDER BY sm.date DESC
+                `;
+                db.all(sql, [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+
+    addStockMovement: async (movement) => {
+        if (isVercel) {
+            const payload = {
+                id: movement.id,
+                product_id: movement.productId,
+                type: movement.type,
+                quantity: movement.quantity,
+                warehouse: movement.warehouse,
+                reference_code: movement.reference,
+                reason: movement.reason,
+                date: movement.date
+            };
+            const { error } = await supabase.from('stock_movements').insert([payload]);
+            if (error) throw new Error(error.message);
+            return movement;
+        } else {
+            return new Promise((resolve, reject) => {
+                const stmt = db.prepare("INSERT INTO stock_movements (id, product_id, type, quantity, warehouse, reference_code, reason, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                stmt.run(movement.id, movement.productId, movement.type, movement.quantity, movement.warehouse, movement.reference, movement.reason, movement.date, function (err) {
+                    if (err) reject(err);
+                    else resolve(movement);
+                });
+                stmt.finalize();
+            });
+        }
+    },
+
+    updateStockMovement: async (id, updates) => {
+        if (isVercel) {
+            const mappedUpdates = {};
+            if (updates.productId) mappedUpdates.product_id = updates.productId;
+            if (updates.type) mappedUpdates.type = updates.type;
+            if (updates.quantity) mappedUpdates.quantity = updates.quantity;
+            if (updates.warehouse) mappedUpdates.warehouse = updates.warehouse;
+            if (updates.reference) mappedUpdates.reference_code = updates.reference;
+            if (updates.notes) mappedUpdates.reason = updates.notes;
+            if (updates.reason) mappedUpdates.reason = updates.reason;
+            if (updates.date) mappedUpdates.date = updates.date;
+
+            const { error } = await supabase.from('stock_movements').update(mappedUpdates).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const fields = [];
+                const values = [];
+
+                if (updates.productId !== undefined) { fields.push('product_id = ?'); values.push(updates.productId); }
+                if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type); }
+                if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
+                if (updates.warehouse !== undefined) { fields.push('warehouse = ?'); values.push(updates.warehouse); }
+                if (updates.reference !== undefined) { fields.push('reference_code = ?'); values.push(updates.reference); }
+                if (updates.notes !== undefined) { fields.push('reason = ?'); values.push(updates.notes); }
+                if (updates.reason !== undefined && updates.notes === undefined) { fields.push('reason = ?'); values.push(updates.reason); }
+                if (updates.date !== undefined) { fields.push('date = ?'); values.push(updates.date); }
+
+                if (fields.length === 0) return resolve({});
+
+                values.push(id);
+                const sql = `UPDATE stock_movements SET ${fields.join(', ')} WHERE id = ?`;
+
+                db.run(sql, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
+    deleteStockMovement: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('stock_movements').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM stock_movements WHERE id = ?", [id], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    }
 };
+
+// Compatibility Alias
+dbAdapter.inventory = dbAdapter;
 
 // --- Finance Operations ---
 dbAdapter.finance = {

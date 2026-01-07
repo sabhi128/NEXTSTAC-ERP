@@ -92,3 +92,84 @@ export const deleteProduct = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+// Stock Movements
+export const getStockMovements = async (req, res) => {
+    try {
+        const rows = await dbAdapter.inventory.getStockMovements();
+        const movements = rows.map(r => ({
+            id: r.id,
+            productId: r.product_id,
+            productName: r.product_name || r.products?.name || 'Unknown Product',
+            type: r.type,
+            quantity: r.quantity,
+            warehouse: r.warehouse,
+            date: r.date,
+            reference: r.reference_code || r.reference,
+            reason: r.reason
+        }));
+        res.json(movements);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const addStockMovement = async (req, res) => {
+    let { productId } = req.body;
+    const { productName, type, quantity, warehouse, reference, notes, date } = req.body;
+
+    // If productId is missing, try to find by name
+    if (!productId && productName) {
+        try {
+            const product = await dbAdapter.inventory.findProductByName(productName);
+            if (product) {
+                productId = product.id;
+            } else {
+                return res.status(404).json({ error: `Product '${productName}' not found. Please create it first.` });
+            }
+        } catch (err) {
+            return res.status(500).json({ error: "Error looking up product: " + err.message });
+        }
+    }
+
+    if (!productId) {
+        return res.status(400).json({ error: "Product is required. Please type an existing product name." });
+    }
+
+    const id = uuidv4();
+    const movement = {
+        id,
+        productId,
+        type,
+        quantity,
+        warehouse,
+        reference,
+        reason: notes,
+        date: date || new Date().toISOString()
+    };
+
+    try {
+        const result = await dbAdapter.inventory.addStockMovement(movement);
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateStockMovement = async (req, res) => {
+    const data = req.body;
+    try {
+        const result = await dbAdapter.inventory.updateStockMovement(req.params.id, data);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteStockMovement = async (req, res) => {
+    try {
+        await dbAdapter.inventory.deleteStockMovement(req.params.id);
+        res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

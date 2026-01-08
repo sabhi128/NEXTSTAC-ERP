@@ -80,6 +80,7 @@ const run = async () => {
     await syncTable('users');
     await syncTable('customers');
     await syncTable('products');
+    await syncTable('stock_movements'); // Added Stock Movements
 
     // 2. Employees (Independent mostly, but referenced by others)
     await syncTable('employees', (row) => {

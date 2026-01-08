@@ -80,6 +80,21 @@ export default function VendorList() {
         }
     });
 
+    const deleteVendorMutation = useMutation({
+        mutationFn: (id) => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(mockDataService.deleteVendor(id));
+                }, 300);
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['vendors']);
+            setIsDeleteModalOpen(false);
+            setVendorToDelete(null);
+        }
+    });
+
 
     const deleteAllMutation = useMutation({
         mutationFn: () => {

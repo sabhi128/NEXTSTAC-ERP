@@ -33,13 +33,15 @@ app.get('/api/fix-schema', async (req, res) => {
         // We need direct client access. db.js exports default db.
         // If db is a Pool (pg), we can connect.
 
-        // This relies on db.js implementation. 
-        // Let's assume we can import the Pool from db.js or just create a new one here if needed?
-        // Actually, let's use the same query method if exposed.
-        // db.js exports: export default (isVercel ? pool : sqliteDb)
+        // db.js exports: export default (isVercel ? poolWrapper : sqliteDb)
+        // poolWrapper has { pool, all, get, run }
 
-        // So 'db' IS the pool on Vercel.
-        const client = await db.connect();
+        // Use db.pool to get a client from the pg Pool
+        if (!db.pool) {
+            return res.status(500).json({ error: "Database pool not found on db object." });
+        }
+
+        const client = await db.pool.connect();
         try {
             await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS warehouse TEXT");
             await client.query("NOTIFY pgrst, 'reload config'");

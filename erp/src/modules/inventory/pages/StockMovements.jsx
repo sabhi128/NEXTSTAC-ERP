@@ -35,11 +35,11 @@ export default function StockMovements() {
 
     const { data: movements, isLoading } = useQuery({
         queryKey: ['stock_movements'],
-        queryFn: api.inventory.getStockMovements,
+        queryFn: () => api.get('/inventory/stock-movements'),
     });
 
     const deleteMovementMutation = useMutation({
-        mutationFn: (id) => api.inventory.deleteStockMovement(id),
+        mutationFn: (id) => api.delete(`/inventory/stock-movements/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['stock_movements']);
             setIsDeleteModalOpen(false);
@@ -51,7 +51,7 @@ export default function StockMovements() {
     });
 
     const addMovementMutation = useMutation({
-        mutationFn: (data) => api.inventory.addStockMovement(data),
+        mutationFn: (data) => api.post('/inventory/stock-movements', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['stock_movements']);
             setIsModalOpen(false);
@@ -63,7 +63,7 @@ export default function StockMovements() {
     });
 
     const updateMovementMutation = useMutation({
-        mutationFn: ({ id, data }) => api.inventory.updateStockMovement(id, data),
+        mutationFn: ({ id, data }) => api.put(`/inventory/stock-movements/${id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['stock_movements']);
             setIsModalOpen(false);

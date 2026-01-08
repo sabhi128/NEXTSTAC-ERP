@@ -12,4 +12,10 @@ router.post('/products', inventoryController.createProduct);
 router.put('/products/:id', inventoryController.updateProduct); // Using PUT/PATCH
 router.delete('/products/:id', inventoryController.deleteProduct);
 
+// Stock Movement Routes
+router.get('/stock-movements', inventoryController.getStockMovements);
+router.post('/stock-movements', inventoryController.addStockMovement);
+router.put('/stock-movements/:id', inventoryController.updateStockMovement);
+router.delete('/stock-movements/:id', inventoryController.deleteStockMovement);
+
 export default router;

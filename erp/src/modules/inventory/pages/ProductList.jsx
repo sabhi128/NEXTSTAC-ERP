@@ -100,8 +100,24 @@ export default function ProductList() {
         setIsDeleteModalOpen(true);
     };
 
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            await api.delete('/inventory/products');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['products']);
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
+        },
+        onError: (err) => {
+            alert("Failed to delete all products: " + (err.message || "Unknown error"));
+        }
+    });
+
     const handleConfirmDelete = () => {
-        if (productToDelete) {
+        if (productToDelete === 'ALL') {
+            deleteAllMutation.mutate();
+        } else if (productToDelete) {
             deleteProductMutation.mutate(productToDelete.id);
         }
     };
@@ -159,9 +175,11 @@ export default function ProductList() {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="Delete Product"
-                message={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
-                confirmText={deleteProductMutation.isPending ? "Deleting..." : "Delete Product"}
+                title={productToDelete === 'ALL' ? "Delete All Products?" : "Delete Product"}
+                message={productToDelete === 'ALL'
+                    ? "Are you sure you want to delete ALL PRODUCTS? This will likely clear all stock movements as well. This action cannot be undone."
+                    : `Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
+                confirmText={productToDelete === 'ALL' ? (deleteAllMutation.isPending ? "Deleting All..." : "Delete Everything") : (deleteProductMutation.isPending ? "Deleting..." : "Delete Product")}
                 variant="danger"
             />
 
@@ -173,12 +191,24 @@ export default function ProductList() {
                         <h2 className="text-2xl font-bold text-white tracking-tight">Products</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage inventory items and stock levels</p>
                     </div>
-                    <button
-                        onClick={handleAddProduct}
-                        className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20">
-                        <Plus className="w-4 h-4" />
-                        Add Product
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => {
+                                setProductToDelete('ALL');
+                                setIsDeleteModalOpen(true);
+                            }}
+                            className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
+                        <button
+                            onClick={handleAddProduct}
+                            className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20">
+                            <Plus className="w-4 h-4" />
+                            Add Product
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters & Search */}

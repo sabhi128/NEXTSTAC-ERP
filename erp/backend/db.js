@@ -106,8 +106,9 @@ if (usePostgres) {
 // --- Schema Initialization (PostgreSQL) ---
 async function initSchemaPostgres(pool) {
     console.log('🛠 Checking PostgreSQL Schema...');
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
 
         // Users
@@ -249,7 +250,7 @@ async function initSchemaPostgres(pool) {
         await client.query('ROLLBACK');
         console.error('❌ Failed to initialize PG Schema:', e);
     } finally {
-        client.release();
+        if (client) client.release();
     }
 }
 

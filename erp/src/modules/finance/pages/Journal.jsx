@@ -75,15 +75,13 @@ export default function Journal() {
                         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-white drop-shadow-sm">Journal Entries</h2>
                         <p className="text-slate-400 text-sm mt-1">Record and view all financial transactions in general ledger</p>
                     </div>
-                    {transactions?.length > 0 && (
-                        <button
-                            onClick={() => setDeleteModalOpen(true)}
-                            className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete All Entries
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setDeleteModalOpen(true)}
+                        className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Delete All Entries
+                    </button>
                 </div>
 
                 {/* Entry Form */}

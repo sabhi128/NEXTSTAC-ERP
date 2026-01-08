@@ -23,8 +23,7 @@ export default function StockMovements() {
     const [selectedMovement, setSelectedMovement] = useState(null); // For Edit
 
     // Delete Confirmation State
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [movementToDelete, setMovementToDelete] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
     // Filters
     const [typeFilter, setTypeFilter] = useState('All');
@@ -38,12 +37,24 @@ export default function StockMovements() {
         queryFn: () => api.get('/inventory/stock-movements'),
     });
 
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            await api.delete('/inventory/stock-movements');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['stock_movements']);
+            setDeleteModal({ isOpen: false, id: null });
+        },
+        onError: (err) => {
+            alert("Failed to delete all movements: " + (err.message || "Unknown error"));
+        }
+    });
+
     const deleteMovementMutation = useMutation({
         mutationFn: (id) => api.delete(`/inventory/stock-movements/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['stock_movements']);
-            setIsDeleteModalOpen(false);
-            setMovementToDelete(null);
+            setDeleteModal({ isOpen: false, id: null });
         },
         onError: (error) => {
             alert("Failed to delete: " + error.message);
@@ -75,8 +86,7 @@ export default function StockMovements() {
     });
 
     const handleDeleteClick = (movement) => {
-        setMovementToDelete(movement);
-        setIsDeleteModalOpen(true);
+        setDeleteModal({ isOpen: true, id: movement.id });
     };
 
     const handleEditClick = (movement) => {
@@ -85,8 +95,10 @@ export default function StockMovements() {
     };
 
     const handleConfirmDelete = () => {
-        if (movementToDelete) {
-            deleteMovementMutation.mutate(movementToDelete.id);
+        if (deleteModal.id === 'ALL') {
+            deleteAllMutation.mutate();
+        } else if (deleteModal.id) {
+            deleteMovementMutation.mutate(deleteModal.id);
         }
     };
 

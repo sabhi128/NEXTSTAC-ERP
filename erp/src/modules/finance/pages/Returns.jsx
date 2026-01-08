@@ -15,10 +15,12 @@ import {
     ArrowUpRight,
     TrendingUp,
     Clock,
-    CheckCircle
+    CheckCircle,
+    Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 const Returns = () => {
     const [activeTab, setActiveTab] = useState('credit'); // credit (Sales) or debit (Purchase)
@@ -26,6 +28,7 @@ const Returns = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         entityName: '',
         referenceInvoice: '',
@@ -52,6 +55,14 @@ const Returns = () => {
     const updateStatusMutation = useMutation({
         mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateReturnStatus(id, status)), 300)),
         onSuccess: () => queryClient.invalidateQueries(['returns'])
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: mockDataService.deleteAllReturns,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['returns']);
+            setIsDeleteModalOpen(false);
+        }
     });
 
     const getNextStatus = (currentStatus) => {
@@ -176,13 +187,24 @@ const Returns = () => {
                         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-white drop-shadow-sm">Returns Management</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage Credit Notes (Sales) and Debit Notes (Purchases)</p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        <Plus className="w-5 h-5" />
-                        New {activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}
-                    </button>
+                    <div className="flex gap-3">
+                        {returns?.length > 0 && (
+                            <button
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete All
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <Plus className="w-5 h-5" />
+                            New {activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Summary Cards */}
@@ -387,6 +409,15 @@ const Returns = () => {
                     )}
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={() => deleteAllMutation.mutate()}
+                title="Delete All Returns?"
+                message="Are you sure you want to delete ALL return records? This action cannot be undone."
+                confirmText="Delete Everything"
+                variant="destructive"
+            />
         </div>
     );
 };

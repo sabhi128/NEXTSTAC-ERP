@@ -132,6 +132,15 @@ export const deleteInvoice = async (req, res) => {
     }
 };
 
+export const deleteAllInvoices = async (req, res) => {
+    try {
+        await dbAdapter.finance.deleteAllInvoices();
+        res.json({ message: 'All invoices deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // --- Payments ---
 export const getPayments = async (req, res) => {
     try {
@@ -182,6 +191,15 @@ export const updatePayment = async (req, res) => {
     try {
         const result = await dbAdapter.finance.updatePayment(req.params.id, req.body);
         res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllPayments = async (req, res) => {
+    try {
+        await dbAdapter.finance.deleteAllPayments();
+        res.json({ message: 'All payments deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

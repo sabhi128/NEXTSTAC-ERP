@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockDataService } from '../../../services/mockDataService';
 import JournalEntryForm from '../components/journal/JournalEntryForm';
 import GeneralJournal from '../components/journal/GeneralJournal';
-import { FileText, DollarSign, Calendar } from 'lucide-react';
+import { FileText, DollarSign, Calendar, Trash2 } from 'lucide-react';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 export default function Journal() {
     const queryClient = useQueryClient();
+    const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
 
     const { data: accounts, isLoading: accountsLoading } = useQuery({
         queryKey: ['accounts'],
@@ -23,6 +25,14 @@ export default function Journal() {
         onSuccess: () => {
             queryClient.invalidateQueries(['transactions']);
         },
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: mockDataService.deleteAllTransactions,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['transactions']);
+            setDeleteModalOpen(false);
+        }
     });
 
     const handlePostEntry = async (entry) => {
@@ -54,6 +64,15 @@ export default function Journal() {
                         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-white drop-shadow-sm">Journal Entries</h2>
                         <p className="text-slate-400 text-sm mt-1">Record and view all financial transactions in general ledger</p>
                     </div>
+                    {transactions?.length > 0 && (
+                        <button
+                            onClick={() => setDeleteModalOpen(true)}
+                            className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All Entries
+                        </button>
+                    )}
                 </div>
 
                 {/* Entry Form */}
@@ -107,6 +126,15 @@ export default function Journal() {
                 {/* Journal Table */}
                 <GeneralJournal transactions={transactions || []} />
             </div>
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={() => deleteAllMutation.mutate()}
+                title="Delete All Journal Entries?"
+                message="Are you sure you want to delete ALL journal entries and transactions? This will also clear the General Ledger. This action cannot be undone."
+                confirmText="Delete Everything"
+                variant="destructive"
+            />
         </div>
     );
 }

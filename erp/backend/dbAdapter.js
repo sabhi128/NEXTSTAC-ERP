@@ -1104,6 +1104,21 @@ dbAdapter.finance = {
         }
     },
 
+    deleteAllInvoices: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM invoices", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+
     getPayments: async () => {
         if (isVercel) {
             const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
@@ -1162,6 +1177,21 @@ dbAdapter.finance = {
                 db.run(`UPDATE payments SET status = ? WHERE id = ?`, [status, id], function (err) {
                     if (err) reject(err);
                     else resolve({ id, status });
+                });
+            });
+        }
+    },
+
+    deleteAllPayments: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM payments", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
                 });
             });
         }

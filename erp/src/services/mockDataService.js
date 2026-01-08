@@ -1013,6 +1013,11 @@ export const mockDataService = {
         return { success: false, error: 'Return not found' };
     },
 
+    deleteAllReturns: () => {
+        localStorage.setItem('erp_mock_returns', JSON.stringify([]));
+        return { success: true };
+    },
+
     addStockMovement: (movement) => {
         const movements = mockDataService.getStockMovements();
         const newMovement = {
@@ -1062,6 +1067,11 @@ export const mockDataService = {
         transactions.unshift(newTransaction);
         localStorage.setItem('erp_mock_transactions', JSON.stringify(transactions));
         return { success: true, data: newTransaction };
+    },
+
+    deleteAllTransactions: () => {
+        localStorage.setItem('erp_mock_transactions', JSON.stringify([]));
+        return { success: true };
     },
 
     // Vendors

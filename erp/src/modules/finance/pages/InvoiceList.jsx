@@ -59,6 +59,17 @@ export default function InvoiceList() {
         }
     });
 
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => await api.delete('/finance/invoices/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['invoices']);
+            setDeleteModal({ isOpen: false, id: null });
+        },
+        onError: (error) => {
+            alert(`Failed to delete all invoices: ${error.message}`);
+        }
+    });
+
     const addInvoiceMutation = useMutation({
         mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addInvoice(data)), 300)),
         onSuccess: () => {
@@ -94,13 +105,24 @@ export default function InvoiceList() {
                         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-white drop-shadow-sm">Invoices</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage customer invoices and billing</p>
                     </div>
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        <Plus className="w-5 h-5" />
-                        New Invoice
-                    </button>
+                    <div className="flex gap-3">
+                        {invoices?.length > 0 && (
+                            <button
+                                onClick={() => setDeleteModal({ isOpen: true, id: 'ALL' })}
+                                className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete All
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setShowForm(true)}
+                            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <Plus className="w-5 h-5" />
+                            New Invoice
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-xl flex flex-col sm:flex-row gap-4 relative z-20">
@@ -273,10 +295,18 @@ export default function InvoiceList() {
             <ConfirmationModal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, id: null })}
-                onConfirm={() => deleteInvoiceMutation.mutate(deleteModal.id)}
-                title="Delete Invoice?"
-                message="Are you sure you want to delete this invoice? This action cannot be undone."
-                confirmText="Delete"
+                onConfirm={() => {
+                    if (deleteModal.id === 'ALL') {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteInvoiceMutation.mutate(deleteModal.id);
+                    }
+                }}
+                title={deleteModal.id === 'ALL' ? "Delete All Invoices?" : "Delete Invoice?"}
+                message={deleteModal.id === 'ALL'
+                    ? "Are you sure you want to delete ALL invoices? This action cannot be undone."
+                    : "Are you sure you want to delete this invoice? This action cannot be undone."}
+                confirmText={deleteModal.id === 'ALL' ? "Delete Everything" : "Delete"}
                 variant="destructive"
             />
         </div >

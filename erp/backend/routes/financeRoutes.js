@@ -19,6 +19,7 @@ router.get('/transactions', financeController.getTransactions);
 router.get('/invoices', financeController.getInvoices);
 router.post('/invoices', financeController.createInvoice);
 router.patch('/invoices/:id/status', financeController.updateInvoiceStatus); // Using PATCH for status updates
+router.delete('/invoices/all', financeController.deleteAllInvoices);
 router.delete('/invoices/:id', financeController.deleteInvoice);
 
 // Payments
@@ -26,6 +27,7 @@ router.get('/payments', financeController.getPayments);
 router.post('/payments', financeController.createPayment);
 router.patch('/payments/:id/status', financeController.updatePaymentStatus);
 router.patch('/payments/:id', financeController.updatePayment);
+router.delete('/payments/all', financeController.deleteAllPayments);
 router.delete('/payments/:id', financeController.deletePayment);
 
 export default router;

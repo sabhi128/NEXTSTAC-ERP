@@ -81,12 +81,12 @@ export default function VendorList() {
     });
 
 
-    const deleteVendorMutation = useMutation({
-        mutationFn: (id) => {
+    const deleteAllMutation = useMutation({
+        mutationFn: () => {
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    resolve(mockDataService.deleteVendor(id));
-                }, 300);
+                    resolve(mockDataService.deleteAllVendors());
+                }, 500);
             });
         },
         onSuccess: () => {
@@ -112,7 +112,9 @@ export default function VendorList() {
     };
 
     const handleConfirmDelete = () => {
-        if (vendorToDelete) {
+        if (vendorToDelete === 'ALL') {
+            deleteAllMutation.mutate();
+        } else if (vendorToDelete) {
             deleteVendorMutation.mutate(vendorToDelete.id);
         }
     };
@@ -149,9 +151,11 @@ export default function VendorList() {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="Delete Vendor"
-                message={`Are you sure you want to delete "${vendorToDelete?.companyName}"?`}
-                confirmText={deleteVendorMutation.isPending ? "Deleting..." : "Delete Vendor"}
+                title={vendorToDelete === 'ALL' ? "Delete All Vendors?" : "Delete Vendor?"}
+                message={vendorToDelete === 'ALL'
+                    ? "Are you sure you want to delete ALL VENDORS? This action cannot be undone."
+                    : `Are you sure you want to delete "${vendorToDelete?.companyName}"?`}
+                confirmText={vendorToDelete === 'ALL' ? "Delete Everything" : (deleteVendorMutation.isPending ? "Deleting..." : "Delete Vendor")}
                 variant="danger"
             />
 
@@ -161,13 +165,27 @@ export default function VendorList() {
                         <h2 className="text-2xl font-bold text-white tracking-tight">Vendors</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage suppliers and partners</p>
                     </div>
-                    <button
-                        onClick={handleAddClick}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95 border border-blue-400/20"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Vendor
-                    </button>
+                    <div className="flex gap-3">
+                        {vendors?.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    setVendorToDelete('ALL');
+                                    setIsDeleteModalOpen(true);
+                                }}
+                                className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete All
+                            </button>
+                        )}
+                        <button
+                            onClick={handleAddClick}
+                            className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95 border border-blue-400/20"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Vendor
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-4 rounded-2xl border border-slate-700/50 shadow-xl">

@@ -92,6 +92,16 @@ export const deleteProduct = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+// Bulk Delete Products
+export const deleteAllProducts = async (req, res) => {
+    try {
+        await dbAdapter.inventory.deleteAllProducts();
+        res.json({ message: 'All products deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // Stock Movements
 export const getStockMovements = async (req, res) => {
     try {
@@ -169,6 +179,15 @@ export const deleteStockMovement = async (req, res) => {
     try {
         await dbAdapter.inventory.deleteStockMovement(req.params.id);
         res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllStockMovements = async (req, res) => {
+    try {
+        await dbAdapter.inventory.deleteAllStockMovements();
+        res.json({ message: 'All stock movements deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

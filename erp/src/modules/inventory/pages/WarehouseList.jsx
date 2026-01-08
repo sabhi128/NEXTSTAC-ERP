@@ -74,16 +74,17 @@ export default function WarehouseList() {
         }
     });
 
-    const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => {
+    const deleteAllMutation = useMutation({
+        mutationFn: () => {
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    resolve(mockDataService.updateWarehouse(id, { status }));
-                }, 300);
+                    resolve(mockDataService.deleteAllWarehouses());
+                }, 500);
             });
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
+            setDeleteModal({ isOpen: false, id: null, name: '' });
         }
     });
 
@@ -141,13 +142,24 @@ export default function WarehouseList() {
                         <h1 className="text-2xl font-bold text-white tracking-tight">Warehouses</h1>
                         <p className="text-slate-400 text-sm mt-1">Manage inventory storage locations</p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-95 border border-violet-400/20"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Warehouse
-                    </button>
+                    <div className="flex gap-3">
+                        {warehouses?.length > 0 && (
+                            <button
+                                onClick={() => setDeleteModal({ isOpen: true, id: 'ALL', name: 'ALL WAREHOUSES' })}
+                                className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete All
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-95 border border-violet-400/20"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Warehouse
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-4 rounded-2xl border border-slate-700/50 shadow-xl">
@@ -296,10 +308,18 @@ export default function WarehouseList() {
             <ConfirmationModal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-                onConfirm={() => deleteWarehouseMutation.mutate(deleteModal.id)}
-                title="Delete Warehouse?"
-                message={`Are you sure you want to delete "${deleteModal.name}"? This action cannot be undone.`}
-                confirmText="Delete Warehouse"
+                onConfirm={() => {
+                    if (deleteModal.id === 'ALL') {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteWarehouseMutation.mutate(deleteModal.id);
+                    }
+                }}
+                title={deleteModal.id === 'ALL' ? "Delete All Warehouses?" : "Delete Warehouse?"}
+                message={deleteModal.id === 'ALL'
+                    ? "Are you sure you want to delete ALL WAREHOUSES? This action cannot be undone."
+                    : `Are you sure you want to delete "${deleteModal.name}"? This action cannot be undone.`}
+                confirmText={deleteModal.id === 'ALL' ? "Delete Everything" : "Delete Warehouse"}
                 cancelText="Cancel"
                 variant="danger"
             />

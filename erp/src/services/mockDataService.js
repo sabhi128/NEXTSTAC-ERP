@@ -949,6 +949,11 @@ export const mockDataService = {
         return { success: true };
     },
 
+    deleteAllWarehouses: () => {
+        localStorage.setItem('erp_mock_warehouses', JSON.stringify([]));
+        return { success: true };
+    },
+
     // --- Stock Movements ---
     getStockMovements: () => {
         return getOrSeed('erp_mock_stock_movements', () => {
@@ -1101,6 +1106,11 @@ export const mockDataService = {
         const vendors = mockDataService.getVendors();
         const newVendors = vendors.filter(v => v.id !== id);
         localStorage.setItem('erp_mock_vendors', JSON.stringify(newVendors));
+        return { success: true };
+    },
+
+    deleteAllVendors: () => {
+        localStorage.setItem('erp_mock_vendors', JSON.stringify([]));
         return { success: true };
     },
 

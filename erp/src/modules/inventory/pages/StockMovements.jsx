@@ -104,8 +104,8 @@ export default function StockMovements() {
     };
 
     const filteredMovements = movements?.filter(m => {
-        const matchesSearch = m.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            m.reference.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = m.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            m.reference?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'All' || m.type === typeFilter;
         return matchesSearch && matchesType;
     });
@@ -126,12 +126,15 @@ export default function StockMovements() {
             />
 
             <ConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, id: null })}
                 onConfirm={handleConfirmDelete}
-                title="Delete Log?"
-                message={`Are you sure you want to delete this stock movement log (${movementToDelete?.reference})?`}
-                confirmText={deleteMovementMutation.isPending ? "Deleting..." : "Delete Log"}
+                title={deleteModal.id === 'ALL' ? "Delete All History?" : "Delete Record?"}
+                message={deleteModal.id === 'ALL'
+                    ? "Are you sure you want to delete ALL STOCK HISTORY? This action cannot be undone."
+                    : `Are you sure you want to delete this stock movement log? This action cannot be undone.`}
+                confirmText={deleteModal.id === 'ALL' ? (deleteAllMutation.isPending ? "Deleting All..." : "Delete Everything") : (deleteMovementMutation.isPending ? "Deleting..." : "Delete Record")}
+                cancelText="Cancel"
                 variant="danger"
             />
 
@@ -144,10 +147,19 @@ export default function StockMovements() {
                         </h1>
                         <p className="text-slate-400 mt-1">Track inventory history and adjustments</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
+                        {movements?.length > 0 && (
+                            <button
+                                onClick={() => setDeleteModal({ isOpen: true, id: 'ALL' })}
+                                className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl flex items-center gap-2 font-bold transition-all active:scale-95"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete All
+                            </button>
+                        )}
                         <button
                             onClick={() => { setSelectedMovement(null); setIsModalOpen(true); }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                         >
                             <Plus className="h-4 w-4" />
                             New Adjustment

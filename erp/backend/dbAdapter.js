@@ -810,856 +810,887 @@ dbAdapter.inventory = {
                 });
             });
         }
-    }
-    ,
+        deleteAllProducts: async () => {
+            if (isVercel) {
+                // Check if there are dependent stock movements first
+                // Supabase/Postgres might have FOREIGN KEY constraints.
+                // But we should delete stock movements first if logical, or cascade.
+                // Let's assume user wants to wipe products.
+                const { error } = await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all where id is not nil
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM products", [], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
 
-    getStockMovements: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase
-                .from('stock_movements')
-                .select(`
+            deleteAllStockMovements: async () => {
+                if (isVercel) {
+                    const { error } = await supabase.from('stock_movements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                    if (error) throw new Error(error.message);
+                    return true;
+                } else {
+                    return new Promise((resolve, reject) => {
+                        db.run("DELETE FROM stock_movements", [], (err) => {
+                            if (err) reject(err);
+                            else resolve(true);
+                        });
+                    });
+                }
+            },
+
+                getStockMovements: async () => {
+                    if (isVercel) {
+                        const { data, error } = await supabase
+                            .from('stock_movements')
+                            .select(`
                     *,
                     products ( name )
                 `)
-                .order('date', { ascending: false });
+                            .order('date', { ascending: false });
 
-            if (error) throw new Error(error.message);
+                        if (error) throw new Error(error.message);
 
-            return data.map(m => ({
-                ...m,
-                product_name: m.products?.name,
-                products: undefined
-            }));
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `
+                        return data.map(m => ({
+                            ...m,
+                            product_name: m.products?.name,
+                            products: undefined
+                        }));
+                    } else {
+                        return new Promise((resolve, reject) => {
+                            const sql = `
                     SELECT sm.*, p.name as product_name
                     FROM stock_movements sm
                     LEFT JOIN products p ON sm.product_id = p.id
                     ORDER BY sm.date DESC
                 `;
-                db.all(sql, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-
-    addStockMovement: async (movement) => {
-        if (isVercel) {
-            const payload = {
-                id: movement.id,
-                product_id: movement.productId,
-                type: movement.type,
-                quantity: movement.quantity,
-                warehouse: movement.warehouse,
-                reference_code: movement.reference,
-                reason: movement.reason,
-                date: movement.date
-            };
-            const { error } = await supabase.from('stock_movements').insert([payload]);
-            if (error) throw new Error(error.message);
-            return movement;
-        } else {
-            return new Promise((resolve, reject) => {
-                const stmt = db.prepare("INSERT INTO stock_movements (id, product_id, type, quantity, warehouse, reference_code, reason, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                stmt.run(movement.id, movement.productId, movement.type, movement.quantity, movement.warehouse, movement.reference, movement.reason, movement.date, function (err) {
-                    if (err) reject(err);
-                    else resolve(movement);
-                });
-                stmt.finalize();
-            });
-        }
-    },
-
-    updateStockMovement: async (id, updates) => {
-        if (isVercel) {
-            const mappedUpdates = {};
-            if (updates.productId) mappedUpdates.product_id = updates.productId;
-            if (updates.type) mappedUpdates.type = updates.type;
-            if (updates.quantity) mappedUpdates.quantity = updates.quantity;
-            if (updates.warehouse) mappedUpdates.warehouse = updates.warehouse;
-            if (updates.reference) mappedUpdates.reference_code = updates.reference;
-            if (updates.notes) mappedUpdates.reason = updates.notes;
-            if (updates.reason) mappedUpdates.reason = updates.reason;
-            if (updates.date) mappedUpdates.date = updates.date;
-
-            const { error } = await supabase.from('stock_movements').update(mappedUpdates).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const fields = [];
-                const values = [];
-
-                if (updates.productId !== undefined) { fields.push('product_id = ?'); values.push(updates.productId); }
-                if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type); }
-                if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
-                if (updates.warehouse !== undefined) { fields.push('warehouse = ?'); values.push(updates.warehouse); }
-                if (updates.reference !== undefined) { fields.push('reference_code = ?'); values.push(updates.reference); }
-                if (updates.notes !== undefined) { fields.push('reason = ?'); values.push(updates.notes); }
-                if (updates.reason !== undefined && updates.notes === undefined) { fields.push('reason = ?'); values.push(updates.reason); }
-                if (updates.date !== undefined) { fields.push('date = ?'); values.push(updates.date); }
-
-                if (fields.length === 0) return resolve({});
-
-                values.push(id);
-                const sql = `UPDATE stock_movements SET ${fields.join(', ')} WHERE id = ?`;
-
-                db.run(sql, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    },
-
-    deleteStockMovement: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('stock_movements').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM stock_movements WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    }
-};
-
-
-
-// --- Finance Operations ---
-dbAdapter.finance = {
-    // Transactions
-    getTransactions: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data.map(t => ({
-                id: t.id,
-                date: t.date,
-                description: t.description,
-                amount: t.amount,
-                type: t.type,
-                category: t.category,
-                reference: t.reference
-            }));
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, date, description, amount, type, category, reference FROM transactions ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createTransactions: async (transactions) => {
-        if (!transactions || transactions.length === 0) return [];
-
-        if (isVercel) {
-            const payload = transactions.map(t => ({
-                id: t.id,
-                date: t.date,
-                description: t.description,
-                amount: t.amount,
-                type: t.type,
-                category: t.category,
-                reference: t.reference
-            }));
-            const { data, error } = await supabase.from('transactions').insert(payload);
-            if (error) throw new Error(error.message);
-            return payload;
-        } else {
-            return new Promise((resolve, reject) => {
-                const placeholders = transactions.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
-                const values = [];
-                transactions.forEach(t => {
-                    values.push(t.id, t.date, t.description, t.amount, t.type, t.category, t.reference);
-                });
-                const sql = `INSERT INTO transactions (id, date, description, amount, type, category, reference) VALUES ${placeholders}`;
-                db.run(sql, values, function (err) {
-                    if (err) reject(err);
-                    else resolve(transactions);
-                });
-            });
-        }
-    },
-
-    getInvoices: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data.map(i => ({
-                id: i.id,
-                invoiceNumber: i.invoice_number,
-                customer: i.customer_name,
-                date: i.date,
-                dueDate: i.due_date,
-                amount: i.amount,
-                status: i.status,
-                items: i.items_count // Controller expects 'items' for count? No, schema says items_count -> items (in SQLite query)
-            }));
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, invoice_number as invoiceNumber, customer_name as customer, date, due_date as dueDate, amount, status, items_count as items FROM invoices ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-
-    createInvoice: async (invoice, items) => {
-        if (isVercel) {
-            const invPayload = {
-                id: invoice.id,
-                invoice_number: invoice.invoiceNumber,
-                customer_name: invoice.customer,
-                date: invoice.date,
-                due_date: invoice.dueDate,
-                amount: invoice.amount,
-                status: invoice.status,
-                items_count: invoice.itemsCount
-            };
-
-            const { error: invError } = await supabase.from('invoices').insert([invPayload]);
-            if (invError) throw new Error(invError.message);
-            // Invoice items skipped for Supabase mvp as table missing or complex, matches previous logic
-            return invoice;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO invoices (id, invoice_number, customer_name, date, due_date, amount, status, items_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [invoice.id, invoice.invoiceNumber, invoice.customer, invoice.date, invoice.dueDate, invoice.amount, invoice.status, invoice.itemsCount], function (err) {
-                    if (err) reject(err);
-                    else resolve(invoice);
-                });
-            });
-        }
-    },
-
-    updateInvoiceStatus: async (id, status) => {
-        if (isVercel) {
-            const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, status };
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("UPDATE invoices SET status = ? WHERE id = ?", [status, id], function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, status });
-                });
-            });
-        }
-    },
-
-    deleteInvoice: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('invoices').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM invoices WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-
-    getPayments: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data.map(p => ({
-                id: p.id,
-                paymentNumber: p.payment_number,
-                vendor: p.vendor,
-                amount: p.amount,
-                date: p.date,
-                method: p.method,
-                status: p.status
-            }));
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, payment_number as paymentNumber, vendor, amount, date, method, status FROM payments ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-
-    createPayment: async (payment) => {
-        if (isVercel) {
-            const payload = {
-                id: payment.id,
-                payment_number: payment.paymentNumber,
-                vendor: payment.vendor,
-                amount: payment.amount,
-                date: payment.date,
-                method: payment.method,
-                status: payment.status
-            };
-            const { error } = await supabase.from('payments').insert([payload]);
-            if (error) throw new Error(error.message);
-            return payment;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO payments (id, payment_number, vendor, amount, date, method, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [payment.id, payment.paymentNumber, payment.vendor, payment.amount, payment.date, payment.method, payment.status], function (err) {
-                    if (err) reject(err);
-                    else resolve(payment);
-                });
-            });
-        }
-    },
-
-    updatePaymentStatus: async (id, status) => {
-        if (isVercel) {
-            const { error } = await supabase.from('payments').update({ status }).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, status };
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run(`UPDATE payments SET status = ? WHERE id = ?`, [status, id], function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, status });
-                });
-            });
-        }
-    },
-
-    deletePayment: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('payments').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM payments WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-
-    updatePayment: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'paymentNumber') mapped.payment_number = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('payments').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'paymentNumber') return 'payment_number = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                db.run(`UPDATE payments SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    }
-};
-
-// --- CRM Operations ---
-dbAdapter.crm = {
-    getCustomers: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data.map(c => ({
-                id: c.id,
-                name: c.name,
-                company: c.company,
-                email: c.email,
-                phone: c.phone,
-                address: c.address,
-                status: c.status,
-                notes: c.notes,
-                totalOrders: c.total_orders,
-                lastOrderDate: c.last_order_date
-            }));
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, name, company, email, phone, address, status, notes, total_orders as totalOrders, last_order_date as lastOrderDate FROM customers ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createCustomer: async (customer) => {
-        if (isVercel) {
-            const payload = {
-                id: customer.id,
-                name: customer.name,
-                company: customer.company,
-                email: customer.email,
-                phone: customer.phone,
-                address: customer.address,
-                status: customer.status,
-                notes: customer.notes
-            };
-            const { error } = await supabase.from('customers').insert([payload]);
-            if (error) throw new Error(error.message);
-            return { ...customer, totalOrders: 0 };
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO customers (id, name, company, email, phone, address, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [customer.id, customer.name, customer.company, customer.email, customer.phone, customer.address, customer.status, customer.notes], function (err) {
-                    if (err) reject(err);
-                    else resolve({ ...customer, totalOrders: 0 });
-                });
-            });
-        }
-    },
-    updateCustomer: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'totalOrders') mapped.total_orders = val;
-                else if (key === 'lastOrderDate') mapped.last_order_date = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('customers').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            const { data } = await supabase.from('customers').select('*').eq('id', id).single();
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    let col = key;
-                    if (key === 'totalOrders') col = 'total_orders';
-                    if (key === 'lastOrderDate') col = 'last_order_date';
-                    return `${col} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                const sql = `UPDATE customers SET ${fields.join(', ')} WHERE id = ?`;
-                db.run(sql, values, function (err) {
-                    if (err) reject(err);
-                    else {
-                        db.get("SELECT id, name, company, email, phone, address, status, notes, total_orders as totalOrders, last_order_date as lastOrderDate FROM customers WHERE id = ?", [id], (err, row) => resolve(row));
-                    }
-                });
-            });
-        }
-    },
-    deleteCustomer: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('customers').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM customers WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-    getLeads: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT * FROM leads ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createLead: async (lead) => {
-        if (isVercel) {
-            const payload = {
-                id: lead.id,
-                name: lead.name,
-                company: lead.company,
-                email: lead.email,
-                phone: lead.phone,
-                source: lead.source,
-                status: lead.status,
-                estimated_value: lead.estimatedValue
-            };
-            const { error } = await supabase.from('leads').insert([payload]);
-            if (error) throw new Error(error.message);
-            return lead;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO leads (id, name, company, email, phone, source, status, estimated_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [lead.id, lead.name, lead.company, lead.email, lead.phone, lead.source, lead.status, lead.estimatedValue], function (err) {
-                    if (err) reject(err);
-                    else resolve(lead);
-                });
-            });
-        }
-    },
-    updateLead: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'estimatedValue' || key === 'value') mapped.estimated_value = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('leads').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'estimatedValue' || key === 'value') return 'estimated_value = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                const sql = `UPDATE leads SET ${fields.join(', ')} WHERE id = ?`;
-                db.run(sql, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    },
-    deleteLead: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('leads').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM leads WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    }
-};
-
-// --- Purchasing Operations ---
-dbAdapter.purchasing = {
-    getVendors: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, company_name as companyName, contact_person as contactPerson, email, phone, address, rating, status FROM vendors ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createVendor: async (vendor) => {
-        if (isVercel) {
-            const payload = {
-                id: vendor.id,
-                company_name: vendor.companyName,
-                contact_person: vendor.contactPerson,
-                email: vendor.email,
-                phone: vendor.phone,
-                address: vendor.address,
-                rating: vendor.rating,
-                status: vendor.status
-            };
-            const { error } = await supabase.from('vendors').insert([payload]);
-            if (error) throw new Error(error.message);
-            return vendor;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO vendors (id, company_name, contact_person, email, phone, address, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [vendor.id, vendor.companyName, vendor.contactPerson, vendor.email, vendor.phone, vendor.address, vendor.rating, vendor.status], function (err) {
-                    if (err) reject(err);
-                    else resolve(vendor);
-                });
-            });
-        }
-    },
-    updateVendor: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'companyName') mapped.company_name = val;
-                else if (key === 'contactPerson') mapped.contact_person = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('vendors').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'companyName') return 'company_name = ?';
-                    if (key === 'contactPerson') return 'contact_person = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                db.run(`UPDATE vendors SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    },
-    deleteVendor: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('vendors').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM vendors WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-
-    // --- Purchase Orders ---
-    getPurchaseOrders: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, po_number as poNumber, vendor, date, expected_date as expectedDate, amount, status FROM purchase_orders ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createPurchaseOrder: async (po) => {
-        if (isVercel) {
-            const payload = {
-                id: po.id,
-                po_number: po.poNumber,
-                vendor: po.vendor,
-                date: po.date,
-                expected_date: po.expectedDate,
-                amount: po.amount,
-                status: po.status
-            };
-            const { error } = await supabase.from('purchase_orders').insert([payload]);
-            if (error) throw new Error(error.message);
-            return po;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO purchase_orders (id, po_number, vendor, date, expected_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [po.id, po.poNumber, po.vendor, po.date, po.expectedDate, po.amount, po.status], function (err) {
-                    if (err) reject(err);
-                    else resolve(po);
-                });
-            });
-        }
-    },
-    updatePurchaseOrder: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'expectedDate') mapped.expected_date = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('purchase_orders').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'expectedDate') return 'expected_date = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                db.run(`UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    },
-    deletePurchaseOrder: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM purchase_orders WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-
-    // --- Bills ---
-    getBills: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('bills').select('*').order('created_at', { ascending: false });
-            if (error) throw new Error(error.message);
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT id, bill_number as billNumber, vendor, date, due_date as dueDate, amount, status FROM bills ORDER BY created_at DESC`, [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    createBill: async (bill) => {
-        if (isVercel) {
-            const payload = {
-                id: bill.id,
-                bill_number: bill.billNumber,
-                vendor: bill.vendor,
-                date: bill.date,
-                due_date: bill.dueDate,
-                amount: bill.amount,
-                status: bill.status
-            };
-            const { error } = await supabase.from('bills').insert([payload]);
-            if (error) throw new Error(error.message);
-            return bill;
-        } else {
-            return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO bills (id, bill_number, vendor, date, due_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [bill.id, bill.billNumber, bill.vendor, bill.date, bill.dueDate, bill.amount, bill.status], function (err) {
-                    if (err) reject(err);
-                    else resolve(bill);
-                });
-            });
-        }
-    },
-    updateBill: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'dueDate') mapped.due_date = val;
-                else mapped[key] = val;
-            }
-            const { error } = await supabase.from('bills').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
-            return { id, ...updates };
-        } else {
-            return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'dueDate') return 'due_date = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
-                values.push(id);
-                db.run(`UPDATE bills SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
-                    if (err) reject(err);
-                    else resolve({ id, ...updates });
-                });
-            });
-        }
-    },
-    deleteBill: async (id) => {
-        if (isVercel) {
-            const { error } = await supabase.from('bills').delete().eq('id', id);
-            if (error) throw new Error(error.message);
-            return true;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.run("DELETE FROM bills WHERE id = ?", [id], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
-                });
-            });
-        }
-    },
-
-
-};
-
-// --- System Operations ---
-dbAdapter.system = {
-    getLogs: async () => {
-        if (isVercel) {
-            const { data, error } = await supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(50);
-            if (error) return []; // Return empty if error or table missing
-            return data;
-        } else {
-            return new Promise((resolve, reject) => {
-                db.all(`SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT 50`, [], (err, rows) => {
-                    // Resolve empty if generic error (e.g. table not found in early dev)
-                    if (err) resolve([]);
-                    else resolve(rows);
-                });
-            });
-        }
-    },
-    getCompanyProfile: async () => {
-        if (isVercel) {
-            // Try fetching, if fail return mock
-            try {
-                const { data, error } = await supabase.from('company_profile').select('*').limit(1).single();
-                if (error || !data) throw error;
-                return data;
-            } catch (e) {
-                return {
-                    name: 'Financa Global',
-                    legalName: 'Financa Technologies Pvt Ltd',
-                    email: 'admin@financa.com'
-                };
-            }
-        } else {
-            return new Promise((resolve, reject) => {
-                db.get(`SELECT * FROM company_profile LIMIT 1`, [], (err, row) => {
-                    if (err || !row) {
-                        resolve({
-                            name: 'Financa Global',
-                            legalName: 'Financa Technologies Pvt Ltd',
-                            email: 'admin@financa.com'
+                            db.all(sql, [], (err, rows) => {
+                                if (err) reject(err);
+                                else resolve(rows);
+                            });
                         });
-                    } else {
-                        resolve(row);
                     }
+                },
+
+                    addStockMovement: async (movement) => {
+                        if (isVercel) {
+                            const payload = {
+                                id: movement.id,
+                                product_id: movement.productId,
+                                type: movement.type,
+                                quantity: movement.quantity,
+                                warehouse: movement.warehouse,
+                                reference_code: movement.reference,
+                                reason: movement.reason,
+                                date: movement.date
+                            };
+                            const { error } = await supabase.from('stock_movements').insert([payload]);
+                            if (error) throw new Error(error.message);
+                            return movement;
+                        } else {
+                            return new Promise((resolve, reject) => {
+                                const stmt = db.prepare("INSERT INTO stock_movements (id, product_id, type, quantity, warehouse, reference_code, reason, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                                stmt.run(movement.id, movement.productId, movement.type, movement.quantity, movement.warehouse, movement.reference, movement.reason, movement.date, function (err) {
+                                    if (err) reject(err);
+                                    else resolve(movement);
+                                });
+                                stmt.finalize();
+                            });
+                        }
+                    },
+
+                        updateStockMovement: async (id, updates) => {
+                            if (isVercel) {
+                                const mappedUpdates = {};
+                                if (updates.productId) mappedUpdates.product_id = updates.productId;
+                                if (updates.type) mappedUpdates.type = updates.type;
+                                if (updates.quantity) mappedUpdates.quantity = updates.quantity;
+                                if (updates.warehouse) mappedUpdates.warehouse = updates.warehouse;
+                                if (updates.reference) mappedUpdates.reference_code = updates.reference;
+                                if (updates.notes) mappedUpdates.reason = updates.notes;
+                                if (updates.reason) mappedUpdates.reason = updates.reason;
+                                if (updates.date) mappedUpdates.date = updates.date;
+
+                                const { error } = await supabase.from('stock_movements').update(mappedUpdates).eq('id', id);
+                                if (error) throw new Error(error.message);
+                                return { id, ...updates };
+                            } else {
+                                return new Promise((resolve, reject) => {
+                                    const fields = [];
+                                    const values = [];
+
+                                    if (updates.productId !== undefined) { fields.push('product_id = ?'); values.push(updates.productId); }
+                                    if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type); }
+                                    if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity); }
+                                    if (updates.warehouse !== undefined) { fields.push('warehouse = ?'); values.push(updates.warehouse); }
+                                    if (updates.reference !== undefined) { fields.push('reference_code = ?'); values.push(updates.reference); }
+                                    if (updates.notes !== undefined) { fields.push('reason = ?'); values.push(updates.notes); }
+                                    if (updates.reason !== undefined && updates.notes === undefined) { fields.push('reason = ?'); values.push(updates.reason); }
+                                    if (updates.date !== undefined) { fields.push('date = ?'); values.push(updates.date); }
+
+                                    if (fields.length === 0) return resolve({});
+
+                                    values.push(id);
+                                    const sql = `UPDATE stock_movements SET ${fields.join(', ')} WHERE id = ?`;
+
+                                    db.run(sql, values, function (err) {
+                                        if (err) reject(err);
+                                        else resolve({ id, ...updates });
+                                    });
+                                });
+                            }
+                        },
+
+                            deleteStockMovement: async (id) => {
+                                if (isVercel) {
+                                    const { error } = await supabase.from('stock_movements').delete().eq('id', id);
+                                    if (error) throw new Error(error.message);
+                                    return true;
+                                } else {
+                                    return new Promise((resolve, reject) => {
+                                        db.run("DELETE FROM stock_movements WHERE id = ?", [id], (err) => {
+                                            if (err) reject(err);
+                                            else resolve(true);
+                                        });
+                                    });
+                                }
+                            }
+    };
+
+
+
+    // --- Finance Operations ---
+    dbAdapter.finance = {
+        // Transactions
+        getTransactions: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data.map(t => ({
+                    id: t.id,
+                    date: t.date,
+                    description: t.description,
+                    amount: t.amount,
+                    type: t.type,
+                    category: t.category,
+                    reference: t.reference
+                }));
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, date, description, amount, type, category, reference FROM transactions ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
                 });
-            });
+            }
+        },
+        createTransactions: async (transactions) => {
+            if (!transactions || transactions.length === 0) return [];
+
+            if (isVercel) {
+                const payload = transactions.map(t => ({
+                    id: t.id,
+                    date: t.date,
+                    description: t.description,
+                    amount: t.amount,
+                    type: t.type,
+                    category: t.category,
+                    reference: t.reference
+                }));
+                const { data, error } = await supabase.from('transactions').insert(payload);
+                if (error) throw new Error(error.message);
+                return payload;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const placeholders = transactions.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+                    const values = [];
+                    transactions.forEach(t => {
+                        values.push(t.id, t.date, t.description, t.amount, t.type, t.category, t.reference);
+                    });
+                    const sql = `INSERT INTO transactions (id, date, description, amount, type, category, reference) VALUES ${placeholders}`;
+                    db.run(sql, values, function (err) {
+                        if (err) reject(err);
+                        else resolve(transactions);
+                    });
+                });
+            }
+        },
+
+        getInvoices: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data.map(i => ({
+                    id: i.id,
+                    invoiceNumber: i.invoice_number,
+                    customer: i.customer_name,
+                    date: i.date,
+                    dueDate: i.due_date,
+                    amount: i.amount,
+                    status: i.status,
+                    items: i.items_count // Controller expects 'items' for count? No, schema says items_count -> items (in SQLite query)
+                }));
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, invoice_number as invoiceNumber, customer_name as customer, date, due_date as dueDate, amount, status, items_count as items FROM invoices ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+
+        createInvoice: async (invoice, items) => {
+            if (isVercel) {
+                const invPayload = {
+                    id: invoice.id,
+                    invoice_number: invoice.invoiceNumber,
+                    customer_name: invoice.customer,
+                    date: invoice.date,
+                    due_date: invoice.dueDate,
+                    amount: invoice.amount,
+                    status: invoice.status,
+                    items_count: invoice.itemsCount
+                };
+
+                const { error: invError } = await supabase.from('invoices').insert([invPayload]);
+                if (invError) throw new Error(invError.message);
+                // Invoice items skipped for Supabase mvp as table missing or complex, matches previous logic
+                return invoice;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO invoices (id, invoice_number, customer_name, date, due_date, amount, status, items_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [invoice.id, invoice.invoiceNumber, invoice.customer, invoice.date, invoice.dueDate, invoice.amount, invoice.status, invoice.itemsCount], function (err) {
+                        if (err) reject(err);
+                        else resolve(invoice);
+                    });
+                });
+            }
+        },
+
+        updateInvoiceStatus: async (id, status) => {
+            if (isVercel) {
+                const { error } = await supabase.from('invoices').update({ status }).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, status };
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("UPDATE invoices SET status = ? WHERE id = ?", [status, id], function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, status });
+                    });
+                });
+            }
+        },
+
+        deleteInvoice: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('invoices').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM invoices WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+
+        getPayments: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data.map(p => ({
+                    id: p.id,
+                    paymentNumber: p.payment_number,
+                    vendor: p.vendor,
+                    amount: p.amount,
+                    date: p.date,
+                    method: p.method,
+                    status: p.status
+                }));
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, payment_number as paymentNumber, vendor, amount, date, method, status FROM payments ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+
+        createPayment: async (payment) => {
+            if (isVercel) {
+                const payload = {
+                    id: payment.id,
+                    payment_number: payment.paymentNumber,
+                    vendor: payment.vendor,
+                    amount: payment.amount,
+                    date: payment.date,
+                    method: payment.method,
+                    status: payment.status
+                };
+                const { error } = await supabase.from('payments').insert([payload]);
+                if (error) throw new Error(error.message);
+                return payment;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO payments (id, payment_number, vendor, amount, date, method, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [payment.id, payment.paymentNumber, payment.vendor, payment.amount, payment.date, payment.method, payment.status], function (err) {
+                        if (err) reject(err);
+                        else resolve(payment);
+                    });
+                });
+            }
+        },
+
+        updatePaymentStatus: async (id, status) => {
+            if (isVercel) {
+                const { error } = await supabase.from('payments').update({ status }).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, status };
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run(`UPDATE payments SET status = ? WHERE id = ?`, [status, id], function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, status });
+                    });
+                });
+            }
+        },
+
+        deletePayment: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('payments').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM payments WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+
+        updatePayment: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'paymentNumber') mapped.payment_number = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('payments').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, ...updates };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        if (key === 'paymentNumber') return 'payment_number = ?';
+                        return `${key} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    db.run(`UPDATE payments SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, ...updates });
+                    });
+                });
+            }
         }
-    }
-};
+    };
+
+    // --- CRM Operations ---
+    dbAdapter.crm = {
+        getCustomers: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    company: c.company,
+                    email: c.email,
+                    phone: c.phone,
+                    address: c.address,
+                    status: c.status,
+                    notes: c.notes,
+                    totalOrders: c.total_orders,
+                    lastOrderDate: c.last_order_date
+                }));
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, name, company, email, phone, address, status, notes, total_orders as totalOrders, last_order_date as lastOrderDate FROM customers ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        createCustomer: async (customer) => {
+            if (isVercel) {
+                const payload = {
+                    id: customer.id,
+                    name: customer.name,
+                    company: customer.company,
+                    email: customer.email,
+                    phone: customer.phone,
+                    address: customer.address,
+                    status: customer.status,
+                    notes: customer.notes
+                };
+                const { error } = await supabase.from('customers').insert([payload]);
+                if (error) throw new Error(error.message);
+                return { ...customer, totalOrders: 0 };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO customers (id, name, company, email, phone, address, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [customer.id, customer.name, customer.company, customer.email, customer.phone, customer.address, customer.status, customer.notes], function (err) {
+                        if (err) reject(err);
+                        else resolve({ ...customer, totalOrders: 0 });
+                    });
+                });
+            }
+        },
+        updateCustomer: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'totalOrders') mapped.total_orders = val;
+                    else if (key === 'lastOrderDate') mapped.last_order_date = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('customers').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                const { data } = await supabase.from('customers').select('*').eq('id', id).single();
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        let col = key;
+                        if (key === 'totalOrders') col = 'total_orders';
+                        if (key === 'lastOrderDate') col = 'last_order_date';
+                        return `${col} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    const sql = `UPDATE customers SET ${fields.join(', ')} WHERE id = ?`;
+                    db.run(sql, values, function (err) {
+                        if (err) reject(err);
+                        else {
+                            db.get("SELECT id, name, company, email, phone, address, status, notes, total_orders as totalOrders, last_order_date as lastOrderDate FROM customers WHERE id = ?", [id], (err, row) => resolve(row));
+                        }
+                    });
+                });
+            }
+        },
+        deleteCustomer: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('customers').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM customers WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+        getLeads: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT * FROM leads ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        createLead: async (lead) => {
+            if (isVercel) {
+                const payload = {
+                    id: lead.id,
+                    name: lead.name,
+                    company: lead.company,
+                    email: lead.email,
+                    phone: lead.phone,
+                    source: lead.source,
+                    status: lead.status,
+                    estimated_value: lead.estimatedValue
+                };
+                const { error } = await supabase.from('leads').insert([payload]);
+                if (error) throw new Error(error.message);
+                return lead;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO leads (id, name, company, email, phone, source, status, estimated_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [lead.id, lead.name, lead.company, lead.email, lead.phone, lead.source, lead.status, lead.estimatedValue], function (err) {
+                        if (err) reject(err);
+                        else resolve(lead);
+                    });
+                });
+            }
+        },
+        updateLead: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'estimatedValue' || key === 'value') mapped.estimated_value = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('leads').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, ...updates };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        if (key === 'estimatedValue' || key === 'value') return 'estimated_value = ?';
+                        return `${key} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    const sql = `UPDATE leads SET ${fields.join(', ')} WHERE id = ?`;
+                    db.run(sql, values, function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, ...updates });
+                    });
+                });
+            }
+        },
+        deleteLead: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('leads').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM leads WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        }
+    };
+
+    // --- Purchasing Operations ---
+    dbAdapter.purchasing = {
+        getVendors: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, company_name as companyName, contact_person as contactPerson, email, phone, address, rating, status FROM vendors ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        createVendor: async (vendor) => {
+            if (isVercel) {
+                const payload = {
+                    id: vendor.id,
+                    company_name: vendor.companyName,
+                    contact_person: vendor.contactPerson,
+                    email: vendor.email,
+                    phone: vendor.phone,
+                    address: vendor.address,
+                    rating: vendor.rating,
+                    status: vendor.status
+                };
+                const { error } = await supabase.from('vendors').insert([payload]);
+                if (error) throw new Error(error.message);
+                return vendor;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO vendors (id, company_name, contact_person, email, phone, address, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [vendor.id, vendor.companyName, vendor.contactPerson, vendor.email, vendor.phone, vendor.address, vendor.rating, vendor.status], function (err) {
+                        if (err) reject(err);
+                        else resolve(vendor);
+                    });
+                });
+            }
+        },
+        updateVendor: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'companyName') mapped.company_name = val;
+                    else if (key === 'contactPerson') mapped.contact_person = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('vendors').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, ...updates };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        if (key === 'companyName') return 'company_name = ?';
+                        if (key === 'contactPerson') return 'contact_person = ?';
+                        return `${key} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    db.run(`UPDATE vendors SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, ...updates });
+                    });
+                });
+            }
+        },
+        deleteVendor: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('vendors').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM vendors WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+
+        // --- Purchase Orders ---
+        getPurchaseOrders: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, po_number as poNumber, vendor, date, expected_date as expectedDate, amount, status FROM purchase_orders ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        createPurchaseOrder: async (po) => {
+            if (isVercel) {
+                const payload = {
+                    id: po.id,
+                    po_number: po.poNumber,
+                    vendor: po.vendor,
+                    date: po.date,
+                    expected_date: po.expectedDate,
+                    amount: po.amount,
+                    status: po.status
+                };
+                const { error } = await supabase.from('purchase_orders').insert([payload]);
+                if (error) throw new Error(error.message);
+                return po;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO purchase_orders (id, po_number, vendor, date, expected_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [po.id, po.poNumber, po.vendor, po.date, po.expectedDate, po.amount, po.status], function (err) {
+                        if (err) reject(err);
+                        else resolve(po);
+                    });
+                });
+            }
+        },
+        updatePurchaseOrder: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'expectedDate') mapped.expected_date = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('purchase_orders').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, ...updates };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        if (key === 'expectedDate') return 'expected_date = ?';
+                        return `${key} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    db.run(`UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, ...updates });
+                    });
+                });
+            }
+        },
+        deletePurchaseOrder: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM purchase_orders WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+
+        // --- Bills ---
+        getBills: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('bills').select('*').order('created_at', { ascending: false });
+                if (error) throw new Error(error.message);
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT id, bill_number as billNumber, vendor, date, due_date as dueDate, amount, status FROM bills ORDER BY created_at DESC`, [], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        createBill: async (bill) => {
+            if (isVercel) {
+                const payload = {
+                    id: bill.id,
+                    bill_number: bill.billNumber,
+                    vendor: bill.vendor,
+                    date: bill.date,
+                    due_date: bill.dueDate,
+                    amount: bill.amount,
+                    status: bill.status
+                };
+                const { error } = await supabase.from('bills').insert([payload]);
+                if (error) throw new Error(error.message);
+                return bill;
+            } else {
+                return new Promise((resolve, reject) => {
+                    const sql = `INSERT INTO bills (id, bill_number, vendor, date, due_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                    db.run(sql, [bill.id, bill.billNumber, bill.vendor, bill.date, bill.dueDate, bill.amount, bill.status], function (err) {
+                        if (err) reject(err);
+                        else resolve(bill);
+                    });
+                });
+            }
+        },
+        updateBill: async (id, updates) => {
+            if (isVercel) {
+                const mapped = {};
+                for (const [key, val] of Object.entries(updates)) {
+                    if (key === 'dueDate') mapped.due_date = val;
+                    else mapped[key] = val;
+                }
+                const { error } = await supabase.from('bills').update(mapped).eq('id', id);
+                if (error) throw new Error(error.message);
+                return { id, ...updates };
+            } else {
+                return new Promise((resolve, reject) => {
+                    const keys = Object.keys(updates);
+                    if (keys.length === 0) return resolve({});
+                    const fields = keys.map((key) => {
+                        if (key === 'dueDate') return 'due_date = ?';
+                        return `${key} = ?`;
+                    });
+                    const values = keys.map(k => updates[k]);
+                    values.push(id);
+                    db.run(`UPDATE bills SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
+                        if (err) reject(err);
+                        else resolve({ id, ...updates });
+                    });
+                });
+            }
+        },
+        deleteBill: async (id) => {
+            if (isVercel) {
+                const { error } = await supabase.from('bills').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+                return true;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.run("DELETE FROM bills WHERE id = ?", [id], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            }
+        },
+
+
+    };
+
+    // --- System Operations ---
+    dbAdapter.system = {
+        getLogs: async () => {
+            if (isVercel) {
+                const { data, error } = await supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(50);
+                if (error) return []; // Return empty if error or table missing
+                return data;
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.all(`SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT 50`, [], (err, rows) => {
+                        // Resolve empty if generic error (e.g. table not found in early dev)
+                        if (err) resolve([]);
+                        else resolve(rows);
+                    });
+                });
+            }
+        },
+        getCompanyProfile: async () => {
+            if (isVercel) {
+                // Try fetching, if fail return mock
+                try {
+                    const { data, error } = await supabase.from('company_profile').select('*').limit(1).single();
+                    if (error || !data) throw error;
+                    return data;
+                } catch (e) {
+                    return {
+                        name: 'Financa Global',
+                        legalName: 'Financa Technologies Pvt Ltd',
+                        email: 'admin@financa.com'
+                    };
+                }
+            } else {
+                return new Promise((resolve, reject) => {
+                    db.get(`SELECT * FROM company_profile LIMIT 1`, [], (err, row) => {
+                        if (err || !row) {
+                            resolve({
+                                name: 'Financa Global',
+                                legalName: 'Financa Technologies Pvt Ltd',
+                                email: 'admin@financa.com'
+                            });
+                        } else {
+                            resolve(row);
+                        }
+                    });
+                });
+            }
+        }
+    };
 
 
 
@@ -1686,4 +1717,4 @@ dbAdapter.system = {
 
 
 
-export default dbAdapter;
+    export default dbAdapter;

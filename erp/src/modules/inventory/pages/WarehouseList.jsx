@@ -10,7 +10,8 @@ import {
     MapPin,
     Package,
     MoreVertical,
-    Trash2
+    Trash2,
+    Pencil
 } from 'lucide-react';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
@@ -20,6 +21,7 @@ export default function WarehouseList() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedWarehouse, setSelectedWarehouse] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         location: '',
@@ -41,8 +43,21 @@ export default function WarehouseList() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
-            setIsModalOpen(false);
-            setFormData({ name: '', location: '', capacity: '' });
+            handleCloseModal();
+        }
+    });
+
+    const updateWarehouseMutation = useMutation({
+        mutationFn: ({ id, data }) => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(mockDataService.updateWarehouse(id, data));
+                }, 500);
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['warehouses']);
+            handleCloseModal();
         }
     });
 
@@ -77,12 +92,34 @@ export default function WarehouseList() {
         updateStatusMutation.mutate({ id: wh.id, status: newStatus });
     };
 
+    const handleEditClick = (wh) => {
+        setSelectedWarehouse(wh);
+        setFormData({
+            name: wh.name,
+            location: wh.location,
+            capacity: wh.capacity ? String(wh.capacity).replace(' units', '') : ''
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedWarehouse(null);
+        setFormData({ name: '', location: '', capacity: '' });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        addWarehouseMutation.mutate({
+        const data = {
             ...formData,
             capacity: formData.capacity + ' units'
-        });
+        };
+
+        if (selectedWarehouse) {
+            updateWarehouseMutation.mutate({ id: selectedWarehouse.id, data });
+        } else {
+            addWarehouseMutation.mutate(data);
+        }
     };
 
     const filteredWarehouses = warehouses?.filter(wh =>
@@ -141,13 +178,22 @@ export default function WarehouseList() {
                                     <div className="p-3 bg-violet-500/10 text-violet-400 rounded-2xl border border-violet-500/20 group-hover:bg-violet-500/20 transition-colors shadow-inner">
                                         <Warehouse className="w-8 h-8" />
                                     </div>
-                                    <button
-                                        onClick={() => setDeleteModal({ isOpen: true, id: wh.id, name: wh.name })}
-                                        className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors active:scale-90"
-                                        title="Delete Warehouse"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleEditClick(wh)}
+                                            className="text-slate-500 hover:text-violet-400 p-2 rounded-xl hover:bg-violet-500/10 transition-colors active:scale-90"
+                                            title="Edit Warehouse"
+                                        >
+                                            <Pencil className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteModal({ isOpen: true, id: wh.id, name: wh.name })}
+                                            className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors active:scale-90"
+                                            title="Delete Warehouse"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <h3 className="text-xl font-bold text-white mb-2 leading-tight">{wh.name}</h3>
@@ -181,8 +227,10 @@ export default function WarehouseList() {
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-slate-900 rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-800">
                             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                                <h2 className="text-lg font-bold text-white">Add New Warehouse</h2>
-                                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                                <h2 className="text-lg font-bold text-white">
+                                    {selectedWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}
+                                </h2>
+                                <button onClick={handleCloseModal} className="text-slate-400 hover:text-white transition-colors">
                                     <span className="sr-only">Close</span>
                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
@@ -225,17 +273,17 @@ export default function WarehouseList() {
                                 <div className="pt-4 flex justify-end gap-3 border-t border-slate-800 mt-4">
                                     <button
                                         type="button"
-                                        onClick={() => setIsModalOpen(false)}
+                                        onClick={handleCloseModal}
                                         className="px-4 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={addWarehouseMutation.isPending}
+                                        disabled={addWarehouseMutation.isPending || updateWarehouseMutation.isPending}
                                         className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-violet-500/20 disabled:opacity-70 flex items-center gap-2"
                                     >
-                                        {addWarehouseMutation.isPending ? 'Creating...' : 'Create Warehouse'}
+                                        {addWarehouseMutation.isPending || updateWarehouseMutation.isPending ? 'Saving...' : (selectedWarehouse ? 'Update Warehouse' : 'Create Warehouse')}
                                     </button>
                                 </div>
                             </form>

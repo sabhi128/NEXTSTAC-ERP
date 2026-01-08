@@ -14,6 +14,7 @@ router.post('/upload', upload.single('file'), financeController.uploadFinanceDat
 
 // Transactions
 router.get('/transactions', financeController.getTransactions);
+router.delete('/transactions/all', financeController.deleteAllTransactions);
 
 // Invoices
 router.get('/invoices', financeController.getInvoices);

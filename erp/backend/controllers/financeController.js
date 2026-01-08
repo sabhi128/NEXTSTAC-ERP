@@ -67,6 +67,15 @@ export const getTransactions = async (req, res) => {
     }
 };
 
+export const deleteAllTransactions = async (req, res) => {
+    try {
+        await dbAdapter.finance.deleteAllTransactions();
+        res.json({ message: 'All transactions deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // --- Invoices ---
 export const getInvoices = async (req, res) => {
     try {

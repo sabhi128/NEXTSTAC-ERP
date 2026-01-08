@@ -1022,6 +1022,21 @@ dbAdapter.finance = {
         }
     },
 
+    deleteAllTransactions: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM transactions", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+
     getInvoices: async () => {
         if (isVercel) {
             const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });

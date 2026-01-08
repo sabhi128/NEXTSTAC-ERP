@@ -5,6 +5,7 @@ import JournalEntryForm from '../components/journal/JournalEntryForm';
 import GeneralJournal from '../components/journal/GeneralJournal';
 import { FileText, DollarSign, Calendar, Trash2 } from 'lucide-react';
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import { api } from '../../../lib/api';
 
 export default function Journal() {
     const queryClient = useQueryClient();
@@ -28,9 +29,19 @@ export default function Journal() {
     });
 
     const deleteAllMutation = useMutation({
-        mutationFn: mockDataService.deleteAllTransactions,
+        mutationFn: async () => {
+            // Delete both mock data and real backend data
+            mockDataService.deleteAllTransactions();
+            try {
+                await api.delete('/finance/transactions/all');
+            } catch (e) {
+                console.warn('Failed to delete backend transactions', e);
+            }
+            return true;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries(['transactions']);
+            // Invalidate dashboard queries too if possible, or just transactions which Dashboard uses
             setDeleteModalOpen(false);
         }
     });

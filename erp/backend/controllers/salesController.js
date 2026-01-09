@@ -32,7 +32,13 @@ export const createOrder = async (req, res) => {
         const savedOrder = await dbAdapter.sales.createOrder(newOrder);
         res.status(201).json(savedOrder);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Create Order Error:', err);
+        res.status(500).json({
+            error: err.message,
+            details: JSON.stringify(err),
+            code: err.code || 'UNKNOWN',
+            hint: err.hint || 'Check Vercel logs'
+        });
     }
 };
 

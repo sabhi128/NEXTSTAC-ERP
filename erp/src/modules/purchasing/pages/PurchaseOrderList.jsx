@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import {
     ShoppingBag,
     Search,
@@ -16,34 +16,56 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PurchaseOrderModal from '../components/PurchaseOrderModal';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
+import { api } from '../../../lib/api';
+
 export default function PurchaseOrderList() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [orderToDelete, setOrderToDelete] = useState(null);
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingPO, setEditingPO] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, isDeleteAll: false });
 
-    const { data: orders, isLoading } = useQuery({
+    // Assuming backend returns vendors for the dropdown if needed, but here we just manage POs.
+    // Ideally we fetch vendors too for the form, but let's stick to PO list logic first.
+
+    const { data: purchaseOrders = [], isLoading } = useQuery({
         queryKey: ['purchaseOrders'],
-        queryFn: mockDataService.getPurchaseOrders,
+        queryFn: () => api.get('/purchasing/purchase-orders'),
     });
 
     const addMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addPurchaseOrder(data)), 300)),
+        mutationFn: (data) => api.post('/purchasing/purchase-orders', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['purchaseOrders']);
-            setIsModalOpen(false);
+            setIsFormOpen(false);
+            setEditingPO(null);
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => api.put(`/purchasing/purchase-orders/${id}`, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['purchaseOrders']);
+            setIsFormOpen(false);
+            setEditingPO(null);
         }
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deletePurchaseOrder(id)), 300)),
-        onSuccess: () => queryClient.invalidateQueries(['purchaseOrders'])
+        mutationFn: (id) => api.delete(`/purchasing/purchase-orders/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['purchaseOrders']);
+            setDeleteConfirm({ isOpen: false, id: null });
+        }
     });
 
-    const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updatePurchaseOrder(id, { status })), 300)),
-        onSuccess: () => queryClient.invalidateQueries(['purchaseOrders'])
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/purchasing/purchase-orders/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['purchaseOrders']);
+            setDeleteConfirm({ isOpen: false, id: null, isDeleteAll: false });
+        }
     });
 
     const handleStatusClick = (po) => {
@@ -52,7 +74,7 @@ export default function PurchaseOrderList() {
 
         if (currentIndex !== -1) {
             const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-            updateStatusMutation.mutate({ id: po.id, status: nextStatus });
+            updateMutation.mutate({ id: po.id, data: { status: nextStatus } });
         } else if (po.status === 'Cancelled') {
             updateStatusMutation.mutate({ id: po.id, status: 'Draft' });
         }
@@ -88,24 +110,23 @@ export default function PurchaseOrderList() {
     return (
         <div className="space-y-6 max-w-[1920px] mx-auto p-4 md:p-8">
             <ConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => {
-                    setIsDeleteModalOpen(false);
-                    setOrderToDelete(null);
-                }}
+                isOpen={deleteConfirm.isOpen}
+                onClose={() => setDeleteConfirm({ isOpen: false, id: null, isDeleteAll: false })}
                 onConfirm={() => {
-                    if (orderToDelete) {
-                        deleteMutation.mutate(orderToDelete.id);
+                    if (deleteConfirm.isDeleteAll) {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteMutation.mutate(deleteConfirm.id);
                     }
                 }}
-                title="Delete Purchase Order"
-                message={orderToDelete ? `Are you sure you want to delete Purchase Order ${orderToDelete.poNumber}? This action cannot be undone.` : "Are you sure?"}
-                confirmText="Delete PO"
+                title={deleteConfirm.isDeleteAll ? "Delete All Orders?" : "Delete Order"}
+                message={deleteConfirm.isDeleteAll ? "Are you sure you want to delete ALL purchase orders?" : "Are you sure you want to delete this order? This action cannot be undone."}
+                confirmText={deleteConfirm.isDeleteAll ? "Delete All" : "Delete Order"}
                 variant="danger"
             />
             <PurchaseOrderModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
                 onSubmit={(data) => addMutation.mutate(data)}
             />
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import {
     Warehouse,
     Plus,
@@ -16,6 +16,8 @@ import {
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
 
+import { api } from '../../../lib/api';
+
 export default function WarehouseList() {
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,19 +30,13 @@ export default function WarehouseList() {
         capacity: ''
     });
 
-    const { data: warehouses, isLoading } = useQuery({
+    const { data: warehouses = [], isLoading } = useQuery({
         queryKey: ['warehouses'],
-        queryFn: mockDataService.getWarehouses,
+        queryFn: () => api.get('/inventory/warehouses').then(res => res.data),
     });
 
     const addWarehouseMutation = useMutation({
-        mutationFn: (newWarehouse) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.addWarehouse(newWarehouse));
-                }, 500);
-            });
-        },
+        mutationFn: (newWarehouse) => api.post('/inventory/warehouses', newWarehouse),
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
             handleCloseModal();
@@ -48,13 +44,7 @@ export default function WarehouseList() {
     });
 
     const updateWarehouseMutation = useMutation({
-        mutationFn: ({ id, data }) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.updateWarehouse(id, data));
-                }, 500);
-            });
-        },
+        mutationFn: ({ id, data }) => api.put(`/inventory/warehouses/${id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
             handleCloseModal();
@@ -62,26 +52,15 @@ export default function WarehouseList() {
     });
 
     const deleteWarehouseMutation = useMutation({
-        mutationFn: (id) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.deleteWarehouse(id));
-                }, 300);
-            });
-        },
+        mutationFn: (id) => api.delete(`/inventory/warehouses/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
+            setDeleteModal({ ...deleteModal, isOpen: false });
         }
     });
 
     const deleteAllMutation = useMutation({
-        mutationFn: () => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.deleteAllWarehouses());
-                }, 500);
-            });
-        },
+        mutationFn: () => api.delete('/inventory/warehouses/all'),
         onSuccess: () => {
             queryClient.invalidateQueries(['warehouses']);
             setDeleteModal({ isOpen: false, id: null, name: '' });
@@ -90,7 +69,7 @@ export default function WarehouseList() {
 
     const handleStatusToggle = (wh) => {
         const newStatus = wh.status === 'Active' ? 'Inactive' : 'Active';
-        updateStatusMutation.mutate({ id: wh.id, status: newStatus });
+        updateWarehouseMutation.mutate({ id: wh.id, data: { status: newStatus } });
     };
 
     const handleEditClick = (wh) => {

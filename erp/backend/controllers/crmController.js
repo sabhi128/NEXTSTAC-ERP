@@ -121,10 +121,80 @@ export const updateLead = async (req, res) => {
     }
 };
 
+
 export const deleteLead = async (req, res) => {
     try {
         await dbAdapter.crm.deleteLead(req.params.id);
         res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllCustomers = async (req, res) => {
+    try {
+        await dbAdapter.crm.deleteAllCustomers();
+        res.json({ message: 'All customers deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllLeads = async (req, res) => {
+    try {
+        await dbAdapter.crm.deleteAllLeads();
+        res.json({ message: 'All leads deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// --- Follow-ups ---
+export const getFollowUps = async (req, res) => {
+    try {
+        const rows = await dbAdapter.crm.getFollowUps();
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const createFollowUp = async (req, res) => {
+    const { type, contact, date, status, notes } = req.body;
+    const id = uuidv4();
+    const newFollowUp = { id, type, contact, date, status: status || 'Pending', notes };
+
+    try {
+        const result = await dbAdapter.crm.createFollowUp(newFollowUp);
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateFollowUp = async (req, res) => {
+    const updates = req.body;
+    try {
+        const result = await dbAdapter.crm.updateFollowUp(req.params.id, updates);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteFollowUp = async (req, res) => {
+    try {
+        await dbAdapter.crm.deleteFollowUp(req.params.id);
+        res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllFollowUps = async (req, res) => {
+    try {
+        await dbAdapter.crm.deleteAllFollowUps();
+        res.json({ message: 'All follow-ups deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

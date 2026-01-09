@@ -192,3 +192,60 @@ export const deleteAllStockMovements = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// Warehouses
+export const getWarehouses = async (req, res) => {
+    try {
+        const rows = await dbAdapter.inventory.getWarehouses();
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const addWarehouse = async (req, res) => {
+    const { name, location, capacity, status } = req.body;
+    const id = uuidv4();
+    const warehouse = {
+        id,
+        name,
+        location,
+        capacity,
+        status: status || 'Active'
+    };
+
+    try {
+        const result = await dbAdapter.inventory.addWarehouse(warehouse);
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateWarehouse = async (req, res) => {
+    const data = req.body.data || req.body; // Handle { data: ... } or direct body
+    try {
+        const result = await dbAdapter.inventory.updateWarehouse(req.params.id, data);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteWarehouse = async (req, res) => {
+    try {
+        await dbAdapter.inventory.deleteWarehouse(req.params.id);
+        res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllWarehouses = async (req, res) => {
+    try {
+        await dbAdapter.inventory.deleteAllWarehouses();
+        res.json({ message: 'All warehouses deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

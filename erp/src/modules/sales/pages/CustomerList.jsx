@@ -55,6 +55,15 @@ export default function CustomerList() {
         mutationFn: (id) => api.delete(`/crm/customers/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['customers']);
+            setDeleteModal({ isOpen: false, id: null, name: '' });
+        }
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/crm/customers/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['customers']);
+            setDeleteModal({ isOpen: false, id: null, name: '', isDeleteAll: false });
         }
     });
 
@@ -108,15 +117,24 @@ export default function CustomerList() {
                         <h2 className="text-2xl font-bold text-white tracking-tight">Customers</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage client relationships</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingCustomer(null);
-                            setIsAddModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95 border border-blue-400/20">
-                        <Plus className="w-4 h-4" />
-                        Add Customer
-                    </button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setDeleteModal({ isOpen: true, id: null, name: 'All Customers', isDeleteAll: true })}
+                            className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl flex items-center gap-2 font-bold transition-all border border-slate-700 hover:border-red-500/20"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingCustomer(null);
+                                setIsAddModalOpen(true);
+                            }}
+                            className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95 border border-blue-400/20">
+                            <Plus className="w-4 h-4" />
+                            Add Customer
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-4 rounded-2xl border border-slate-700/50 shadow-xl relative z-30">
@@ -200,8 +218,14 @@ export default function CustomerList() {
 
             <ConfirmationModal
                 isOpen={deleteModal.isOpen}
-                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-                onConfirm={() => deleteCustomerMutation.mutate(deleteModal.id)}
+                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false, isDeleteAll: false })}
+                onConfirm={() => {
+                    if (deleteModal.isDeleteAll) {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteCustomerMutation.mutate(deleteModal.id);
+                    }
+                }}
                 title="Delete Customer?"
                 message={`Are you sure you want to delete "${deleteModal.name}"? This action cannot be undone.`}
                 confirmText="Delete Customer"

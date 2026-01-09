@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import {
     Building2,
     Search,
@@ -19,20 +19,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SupplierFormModal from '../components/SupplierFormModal';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
+import { api } from '../../../lib/api';
+
 export default function SupplierList() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
-    const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
+    const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, isDeleteAll: false });
 
-    const { data: suppliers, isLoading } = useQuery({
+    const { data: suppliers = [], isLoading } = useQuery({
         queryKey: ['vendors'],
-        queryFn: mockDataService.getVendors,
+        queryFn: () => api.get('/purchasing/vendors'),
     });
 
     const addMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addVendor(data)), 300)),
+        mutationFn: (data) => api.post('/purchasing/vendors', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['vendors']);
             setIsFormOpen(false);
@@ -41,7 +43,7 @@ export default function SupplierList() {
     });
 
     const updateMutation = useMutation({
-        mutationFn: ({ id, data }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateVendor(id, data)), 300)),
+        mutationFn: ({ id, data }) => api.put(`/purchasing/vendors/${id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['vendors']);
             setIsFormOpen(false);
@@ -50,10 +52,18 @@ export default function SupplierList() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deleteVendor(id)), 300)),
+        mutationFn: (id) => api.delete(`/purchasing/vendors/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['vendors']);
             setDeleteConfirm({ isOpen: false, id: null });
+        }
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/purchasing/vendors/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['vendors']);
+            setDeleteConfirm({ isOpen: false, id: null, isDeleteAll: false });
         }
     });
 
@@ -128,11 +138,17 @@ export default function SupplierList() {
 
             <ConfirmationModal
                 isOpen={deleteConfirm.isOpen}
-                onClose={() => setDeleteConfirm({ isOpen: false, id: null })}
-                onConfirm={() => deleteMutation.mutate(deleteConfirm.id)}
-                title="Delete Supplier"
-                message="Are you sure you want to delete this supplier? This action cannot be undone."
-                confirmText="Delete Supplier"
+                onClose={() => setDeleteConfirm({ isOpen: false, id: null, isDeleteAll: false })}
+                onConfirm={() => {
+                    if (deleteConfirm.isDeleteAll) {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteMutation.mutate(deleteConfirm.id);
+                    }
+                }}
+                title={deleteConfirm.isDeleteAll ? "Delete All Suppliers?" : "Delete Supplier"}
+                message={deleteConfirm.isDeleteAll ? "Are you sure you want to delete ALL suppliers? This cannot be undone." : "Are you sure you want to delete this supplier? This action cannot be undone."}
+                confirmText={deleteConfirm.isDeleteAll ? "Delete All" : "Delete Supplier"}
                 variant="danger"
             />
 
@@ -141,18 +157,29 @@ export default function SupplierList() {
                     <h2 className="text-2xl font-bold text-white tracking-tight">Suppliers</h2>
                     <p className="text-slate-400">Manage vendor relationships and procurement</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                        setEditingSupplier(null);
-                        setIsFormOpen(true);
-                    }}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-purple-500/25 flex items-center gap-2 font-bold transition-all"
-                >
-                    <Plus className="w-5 h-5" />
-                    Add Supplier
-                </motion.button>
+                <div className="flex gap-4">
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setDeleteConfirm({ isOpen: true, id: null, isDeleteAll: true })}
+                        className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl border border-slate-700 hover:border-red-500/20 flex items-center gap-2 font-bold transition-all"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                        Delete All
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                            setEditingSupplier(null);
+                            setIsFormOpen(true);
+                        }}
+                        className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-purple-500/25 flex items-center gap-2 font-bold transition-all"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Add Supplier
+                    </motion.button>
+                </div>
             </div>
 
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl sticky top-20 z-30 shadow-xl">
@@ -252,8 +279,8 @@ export default function SupplierList() {
                                 <button
                                     onClick={() => toggleStatus(supplier)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95 border ${supplier.status === 'Active'
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                            : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:bg-slate-700'
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                        : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:bg-slate-700'
                                         }`}
                                 >
                                     {supplier.status}

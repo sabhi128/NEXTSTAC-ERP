@@ -175,3 +175,30 @@ export const deleteBill = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+export const deleteAllVendors = async (req, res) => {
+    try {
+        await dbAdapter.purchasing.deleteAllVendors();
+        res.json({ message: 'All vendors deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllPurchaseOrders = async (req, res) => {
+    try {
+        await dbAdapter.purchasing.deleteAllPurchaseOrders();
+        res.json({ message: 'All purchase orders deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllBills = async (req, res) => {
+    try {
+        await dbAdapter.purchasing.deleteAllBills();
+        res.json({ message: 'All bills deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

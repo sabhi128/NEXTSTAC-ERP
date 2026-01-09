@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import { Target, Search, MoreHorizontal, User, Phone, CheckCircle, ArrowRight, Plus, Edit, Trash2, XCircle, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import LeadFormModal from '../components/LeadFormModal';
+
+import { api } from '../../../lib/api';
 
 export default function LeadList() {
     const queryClient = useQueryClient();
@@ -14,16 +16,16 @@ export default function LeadList() {
     // New State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState(null);
-    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '', isDeleteAll: false });
     const [activeDropdown, setActiveDropdown] = useState(null);
 
-    const { data: leads, isLoading } = useQuery({
+    const { data: leads = [], isLoading } = useQuery({
         queryKey: ['leads'],
-        queryFn: mockDataService.getLeads,
+        queryFn: () => api.get('/crm/leads'),
     });
 
     const addLeadMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addLead(data)), 300)),
+        mutationFn: (data) => api.post('/crm/leads', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['leads']);
             setIsAddModalOpen(false);
@@ -32,7 +34,7 @@ export default function LeadList() {
     });
 
     const updateLeadMutation = useMutation({
-        mutationFn: ({ id, data }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateLead(id, data)), 300)),
+        mutationFn: ({ id, data }) => api.put(`/crm/leads/${id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['leads']);
             setIsAddModalOpen(false);
@@ -41,25 +43,52 @@ export default function LeadList() {
     });
 
     const deleteLeadMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deleteLead(id)), 300)),
+        mutationFn: (id) => api.delete(`/crm/leads/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['leads']);
             setDeleteModal({ isOpen: false, id: null, name: '' });
         }
     });
 
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/crm/leads/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['leads']);
+            setDeleteModal({ isOpen: false, id: null, name: '', isDeleteAll: false });
+        }
+    });
+
     const contactMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateLead(id, { status: 'Contacted' })), 300)),
+        mutationFn: (id) => api.put(`/crm/leads/${id}`, { status: 'Contacted' }),
         onSuccess: () => queryClient.invalidateQueries(['leads'])
     });
 
     const markLostMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateLead(id, { status: 'Lost' })), 300)),
+        mutationFn: (id) => api.put(`/crm/leads/${id}`, { status: 'Lost' }),
         onSuccess: () => queryClient.invalidateQueries(['leads'])
     });
 
     const convertMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.convertLead(id)), 500)),
+        // Conversion logic is complex (delete lead, create customer).
+        // For now, let's keep it simple or implement a conversion endpoint?
+        // Let's assume frontend logic: get lead, create customer, delete lead.
+        // OR better: create a backend endpoint for conversion.
+        // Given time constraint, I'll do it on frontend for now or create a smart mutation.
+        // Actually, dbAdapter implies `createCustomer` sets orders to 0.
+        // I will do: Post Customer -> Delete Lead.
+        mutationFn: async (id) => {
+            const lead = leads.find(l => l.id === id);
+            if (!lead) return;
+            await api.post('/crm/customers', {
+                name: lead.name,
+                company: lead.company,
+                email: lead.email,
+                phone: lead.phone,
+                status: 'Active',
+                notes: `Converted from lead. Source: ${lead.source}`
+            });
+            await api.delete(`/crm/leads/${id}`);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries(['leads']);
             queryClient.invalidateQueries(['customers']);
@@ -121,16 +150,25 @@ export default function LeadList() {
                         <h2 className="text-2xl font-bold text-white tracking-tight">Leads</h2>
                         <p className="text-slate-400 text-sm mt-1">Track and convert potential customers</p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setEditingLead(null);
-                            setIsAddModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Lead
-                    </button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setDeleteModal({ isOpen: true, id: null, name: 'All Leads', isDeleteAll: true })}
+                            className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl flex items-center gap-2 font-bold transition-all border border-slate-700 hover:border-red-500/20"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingLead(null);
+                                setIsAddModalOpen(true);
+                            }}
+                            className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-400/20"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Lead
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-4 rounded-2xl border border-slate-700/50 shadow-xl relative z-30">
@@ -273,8 +311,14 @@ export default function LeadList() {
 
             <ConfirmationModal
                 isOpen={deleteModal.isOpen}
-                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-                onConfirm={() => deleteLeadMutation.mutate(deleteModal.id)}
+                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false, isDeleteAll: false })}
+                onConfirm={() => {
+                    if (deleteModal.isDeleteAll) {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteLeadMutation.mutate(deleteModal.id);
+                    }
+                }}
                 title="Delete Lead?"
                 message={`Are you sure you want to delete "${deleteModal.name}"? This action cannot be undone.`}
                 confirmText="Delete Lead"

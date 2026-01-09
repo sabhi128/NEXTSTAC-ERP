@@ -960,6 +960,91 @@ dbAdapter.inventory = {
                 });
             });
         }
+    },
+
+    // --- Warehouses ---
+    getWarehouses: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('warehouses').select('*').order('created_at', { ascending: false });
+            if (error) throw new Error(error.message);
+            return data;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all(`SELECT * FROM warehouses ORDER BY created_at DESC`, [], (err, rows) => {
+                    if (err) resolve([]); // Table might not exist yet
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+    addWarehouse: async (warehouse) => {
+        if (isVercel) {
+            const payload = {
+                id: warehouse.id,
+                name: warehouse.name,
+                location: warehouse.location,
+                capacity: warehouse.capacity,
+                status: warehouse.status
+            };
+            const { error } = await supabase.from('warehouses').insert([payload]);
+            if (error) throw new Error(error.message);
+            return warehouse;
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = `INSERT INTO warehouses (id, name, location, capacity, status) VALUES (?, ?, ?, ?, ?)`;
+                db.run(sql, [warehouse.id, warehouse.name, warehouse.location, warehouse.capacity, warehouse.status], function (err) {
+                    if (err) reject(err);
+                    else resolve(warehouse);
+                });
+            });
+        }
+    },
+    updateWarehouse: async (id, updates) => {
+        if (isVercel) {
+            const { error } = await supabase.from('warehouses').update(updates).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({});
+                const fields = keys.map(k => `${k} = ?`).join(', ');
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+                db.run(`UPDATE warehouses SET ${fields} WHERE id = ?`, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+    deleteWarehouse: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('warehouses').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM warehouses WHERE id = ?", [id], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+    deleteAllWarehouses: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('warehouses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM warehouses", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
     }
 };
 
@@ -1356,6 +1441,20 @@ dbAdapter.crm = {
             });
         }
     },
+    deleteAllCustomers: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('customers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM customers", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
     getLeads: async () => {
         if (isVercel) {
             const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -1431,6 +1530,113 @@ dbAdapter.crm = {
         } else {
             return new Promise((resolve, reject) => {
                 db.run("DELETE FROM leads WHERE id = ?", [id], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+    deleteAllLeads: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('leads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM leads", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+
+    // --- Follow-ups ---
+    getFollowUps: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('follow_ups').select('*').order('date', { ascending: true });
+            if (error) throw new Error(error.message);
+            return data.map(f => ({
+                id: f.id,
+                type: f.type,
+                contact: f.contact,
+                date: f.date,
+                status: f.status,
+                notes: f.notes
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all(`SELECT * FROM follow_ups ORDER BY date ASC`, [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+    createFollowUp: async (item) => {
+        if (isVercel) {
+            const payload = {
+                id: item.id,
+                type: item.type,
+                contact: item.contact,
+                date: item.date,
+                status: item.status,
+                notes: item.notes
+            };
+            const { error } = await supabase.from('follow_ups').insert([payload]);
+            if (error) throw new Error(error.message);
+            return item;
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = `INSERT INTO follow_ups (id, type, contact, date, status, notes) VALUES (?, ?, ?, ?, ?, ?)`;
+                db.run(sql, [item.id, item.type, item.contact, item.date, item.status, item.notes], function (err) {
+                    if (err) reject(err);
+                    else resolve(item);
+                });
+            });
+        }
+    },
+    updateFollowUp: async (id, updates) => {
+        if (isVercel) {
+            const { error } = await supabase.from('follow_ups').update(updates).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({});
+                const fields = keys.map(k => `${k} = ?`).join(', ');
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+                db.run(`UPDATE follow_ups SET ${fields} WHERE id = ?`, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+    deleteFollowUp: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('follow_ups').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM follow_ups WHERE id = ?", [id], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+    deleteAllFollowUps: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('follow_ups').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM follow_ups", [], (err) => {
                     if (err) reject(err);
                     else resolve(true);
                 });
@@ -1686,7 +1892,50 @@ dbAdapter.purchasing = {
         }
     },
 
+    deleteAllBills: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('bills').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM bills", [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    }
+};
 
+dbAdapter.purchasing.deleteAllVendors = async () => {
+    if (isVercel) {
+        const { error } = await supabase.from('vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw new Error(error.message);
+        return true;
+    } else {
+        return new Promise((resolve, reject) => {
+            db.run("DELETE FROM vendors", [], (err) => {
+                if (err) reject(err);
+                else resolve(true);
+            });
+        });
+    }
+};
+
+dbAdapter.purchasing.deleteAllPurchaseOrders = async () => {
+    if (isVercel) {
+        const { error } = await supabase.from('purchase_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw new Error(error.message);
+        return true;
+    } else {
+        return new Promise((resolve, reject) => {
+            db.run("DELETE FROM purchase_orders", [], (err) => {
+                if (err) reject(err);
+                else resolve(true);
+            });
+        });
+    }
 };
 
 // --- System Operations ---

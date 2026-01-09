@@ -25,3 +25,14 @@ export const createOrder = (req, res) => {
         res.status(201).json({ id, invoice_number, customer_name, amount, status: status || 'Pending' });
     });
 };
+
+export const deleteAllOrders = async (req, res) => {
+    // Orders are Invoices in this system
+    const sql = 'DELETE FROM invoices';
+    db.run(sql, [], (err) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'All orders deleted successfully' });
+    });
+};

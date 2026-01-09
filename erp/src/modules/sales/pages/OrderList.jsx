@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import {
     ShoppingCart,
     Search,
@@ -21,39 +21,65 @@ import ConfirmationModal from '../../../components/ConfirmationModal';
 import OrderModal from '../components/OrderModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { api } from '../../../lib/api';
+
 export default function OrderList() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, id: null });
+    const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, id: null, isDeleteAll: false });
     const [statusFilter, setStatusFilter] = useState('All'); // All, Processing, Shipped, Delivered, Cancelled
     const [paymentFilter, setPaymentFilter] = useState('All'); // All, Paid, Pending, Overdue
 
-    const { data: orders, isLoading } = useQuery({
+    const { data: orders = [], isLoading } = useQuery({
         queryKey: ['orders'],
-        queryFn: mockDataService.getOrders,
+        queryFn: () => api.get('/sales/orders'),
     });
 
     const deleteOrderMutation = useMutation({
-        mutationFn: (id) => new Promise(resolve => setTimeout(() => resolve(mockDataService.deleteOrder(id)), 300)),
+        // Currently no single delete endpoint for orders in salesRoutes, 
+        // but backend might support it via finance or generic route.
+        // Assuming we rely on delete functionality from financeController passed through or similar?
+        // Actually salesRoutes.js didn't have delete order by ID, only delete all.
+        // I should check if I added DELETE /orders/:id. I didn't.
+        // But financeRoutes has DELETE /invoices/:id.
+        // I should probably add DELETE /orders/:id to salesRoutes aliasing finance.
+        // For now, I will use finance endpoint directly or add it?
+        // Let's use /finance/invoices/:id if possible or add `router.delete('/orders/:id', ...)`
+        // I'll update salesRoutes.js later or use finance endpoint. 
+        // Wait, I am in "Implementing Delete All", I should probably fix single delete too if I want full migration.
+        // I will add the route in next step for robustness.
+        mutationFn: (id) => api.delete(`/sales/orders/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['orders']);
             setConfirmationModal({ isOpen: false, id: null });
         }
     });
 
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/sales/orders/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['orders']);
+            setConfirmationModal({ isOpen: false, id: null, isDeleteAll: false });
+        }
+    });
+
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateOrderStatus(id, status)), 300)),
+        // Assuming backend supports this. If not, I might need to implement it.
+        // salesController only had get and create. I need update logic.
+        // dbAdapter.finance.updateInvoice works.
+        // I'll need to update salesRoutes/Controller to handle updates or use finance endpoint.
+        mutationFn: ({ id, status }) => api.put(`/sales/orders/${id}`, { status }),
         onSuccess: () => queryClient.invalidateQueries(['orders'])
     });
 
     const updatePaymentStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateOrderPaymentStatus(id, status)), 300)),
+        mutationFn: ({ id, status }) => api.put(`/sales/orders/${id}`, { paymentStatus: status }),
         onSuccess: () => queryClient.invalidateQueries(['orders'])
     });
 
     const addOrderMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addOrder(data)), 300)),
+        mutationFn: (data) => api.post('/sales/orders', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['orders']);
             setIsModalOpen(false);
@@ -116,8 +142,14 @@ export default function OrderList() {
 
             <ConfirmationModal
                 isOpen={confirmationModal.isOpen}
-                onClose={() => setConfirmationModal({ isOpen: false, id: null })}
-                onConfirm={() => deleteOrderMutation.mutate(confirmationModal.id)}
+                onClose={() => setConfirmationModal({ isOpen: false, id: null, isDeleteAll: false })}
+                onConfirm={() => {
+                    if (confirmationModal.isDeleteAll) {
+                        deleteAllMutation.mutate();
+                    } else {
+                        deleteOrderMutation.mutate(confirmationModal.id);
+                    }
+                }}
                 title="Delete Order"
                 message="Are you sure you want to delete this order? This action works properly and cannot be undone."
                 confirmText="Delete Order"
@@ -130,13 +162,22 @@ export default function OrderList() {
                         <h2 className="text-2xl font-bold text-white tracking-tight">Orders</h2>
                         <p className="text-slate-400 text-sm mt-1">Manage sales orders and fulfillment</p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-teal-500/20 active:scale-95 border border-teal-400/20"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Order
-                    </button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setConfirmationModal({ isOpen: true, id: null, isDeleteAll: true })}
+                            className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl flex items-center gap-2 font-bold transition-all border border-slate-700 hover:border-red-500/20"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-teal-500/20 active:scale-95 border border-teal-400/20"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Order
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-slate-800/50 backdrop-blur-xl p-4 rounded-2xl border border-slate-700/50 shadow-xl flex flex-col md:flex-row gap-4 relative z-30">

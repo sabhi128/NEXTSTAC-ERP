@@ -1,13 +1,38 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
-import { Phone, Mail, Calendar, CheckSquare, Clock, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
+import { Phone, Mail, Calendar, CheckSquare, Clock, ArrowRight, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 export default function FollowUpList() {
-    const { data: followUps, isLoading } = useQuery({
+    const queryClient = useQueryClient();
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, isDeleteAll: false });
+
+    const { data: followUps = [], isLoading } = useQuery({
         queryKey: ['followUps'],
-        queryFn: mockDataService.getFollowUps,
+        queryFn: () => api.get('/crm/followups'),
+    });
+
+    const deleteFollowUpMutation = useMutation({
+        mutationFn: (id) => api.delete(`/crm/followups/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['followUps']);
+        }
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: () => api.delete('/crm/followups/all'),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['followUps']);
+            setDeleteModal({ isOpen: false, id: null, isDeleteAll: false });
+        }
+    });
+
+    const completeFollowUpMutation = useMutation({
+        mutationFn: (id) => api.put(`/crm/followups/${id}`, { status: 'Completed' }),
+        onSuccess: () => queryClient.invalidateQueries(['followUps'])
     });
 
     if (isLoading) return <div className="p-8 text-center text-slate-400">Loading items...</div>;
@@ -39,6 +64,15 @@ export default function FollowUpList() {
                     <div>
                         <h2 className="text-2xl font-bold text-white tracking-tight">Follow-ups</h2>
                         <p className="text-slate-400 text-sm mt-1">Scheduled actions and reminders</p>
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => setDeleteModal({ isOpen: true, id: null, isDeleteAll: true })}
+                            className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl flex items-center gap-2 font-bold transition-all border border-slate-700 hover:border-red-500/20"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
                     </div>
                 </div>
 
@@ -76,9 +110,20 @@ export default function FollowUpList() {
                                         <p className="text-xs text-slate-500 mt-0.5 font-medium uppercase tracking-wide">Due Date</p>
                                     </div>
 
-                                    <button className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20">
-                                        <CheckSquare className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => deleteFollowUpMutation.mutate(item.id)}
+                                            className="p-2.5 rounded-xl bg-slate-800 hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-all border border-slate-700"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => completeFollowUpMutation.mutate(item.id)}
+                                            className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20"
+                                        >
+                                            <CheckSquare className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
 import {
     Users,
     Plus,
@@ -18,6 +17,8 @@ import CustomerFormModal from '../components/CustomerFormModal';
 import CustomerProfileModal from '../components/CustomerProfileModal';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
+import { api } from '../../../lib/api';
+
 export default function CustomerList() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,13 +27,13 @@ export default function CustomerList() {
     const [profileCustomer, setProfileCustomer] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
 
-    const { data: customers, isLoading } = useQuery({
+    const { data: customers = [], isLoading } = useQuery({
         queryKey: ['customers'],
-        queryFn: mockDataService.getCustomers,
+        queryFn: () => api.get('/crm/customers'),
     });
 
     const addCustomerMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addCustomer(data)), 300)),
+        mutationFn: (data) => api.post('/crm/customers', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['customers']);
             setIsAddModalOpen(false);
@@ -41,7 +42,7 @@ export default function CustomerList() {
     });
 
     const updateCustomerMutation = useMutation({
-        mutationFn: ({ id, data }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateCustomer(id, data)), 300)),
+        mutationFn: ({ id, data }) => api.put(`/crm/customers/${id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries(['customers']);
             setIsAddModalOpen(false);
@@ -51,13 +52,7 @@ export default function CustomerList() {
     });
 
     const deleteCustomerMutation = useMutation({
-        mutationFn: (id) => {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(mockDataService.deleteCustomer(id));
-                }, 300);
-            });
-        },
+        mutationFn: (id) => api.delete(`/crm/customers/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries(['customers']);
         }

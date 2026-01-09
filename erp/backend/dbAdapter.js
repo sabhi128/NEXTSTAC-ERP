@@ -1938,6 +1938,90 @@ dbAdapter.purchasing.deleteAllPurchaseOrders = async () => {
     }
 };
 
+// --- Sales Operations ---
+dbAdapter.sales = {
+    getOrders: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
+            if (error) throw new Error(error.message);
+            return data.map(r => ({
+                id: r.id,
+                orderNumber: r.invoice_number,
+                customer: r.customer_name,
+                amount: r.amount,
+                status: r.delivery_status || r.status || 'Processing',
+                paymentStatus: r.status,
+                date: r.date,
+                dueDate: r.due_date
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all('SELECT * FROM invoices ORDER BY created_at DESC', [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows.map(r => ({
+                        id: r.id,
+                        orderNumber: r.invoice_number,
+                        customer: r.customer_name,
+                        amount: r.amount,
+                        status: r.delivery_status || r.status || 'Processing',
+                        paymentStatus: r.status,
+                        date: r.date,
+                        dueDate: r.due_date
+                    })));
+                });
+            });
+        }
+    },
+    createOrder: async (order) => {
+        if (isVercel) {
+            const payload = {
+                id: order.id,
+                invoice_number: order.orderNumber,
+                customer_name: order.customer,
+                amount: order.amount,
+                status: order.paymentStatus || 'Pending',
+                delivery_status: order.status || 'Processing',
+                date: order.date,
+                due_date: order.dueDate
+            };
+            const { error } = await supabase.from('invoices').insert([payload]);
+            if (error) throw new Error(error.message);
+            return order;
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = `INSERT INTO invoices (id, invoice_number, customer_name, amount, status, delivery_status, date, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                db.run(sql, [
+                    order.id,
+                    order.orderNumber,
+                    order.customer,
+                    order.amount,
+                    order.paymentStatus || 'Pending',
+                    order.status || 'Processing',
+                    order.date,
+                    order.dueDate
+                ], function (err) {
+                    if (err) reject(err);
+                    else resolve(order);
+                });
+            });
+        }
+    },
+    deleteAllOrders: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run('DELETE FROM invoices', [], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    }
+};
+
 // --- System Operations ---
 dbAdapter.system = {
     getLogs: async () => {

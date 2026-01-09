@@ -232,6 +232,9 @@ async function initSchemaPostgres(pool) {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Migration: Add delivery_status if missing (for Sales Orders)
+        await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS delivery_status TEXT DEFAULT 'Processing'`);
+
         // Documents
         await client.query(`CREATE TABLE IF NOT EXISTS documents (
             id TEXT PRIMARY KEY,

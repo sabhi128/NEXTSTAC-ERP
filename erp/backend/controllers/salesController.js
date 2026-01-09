@@ -22,7 +22,8 @@ export const createOrder = async (req, res) => {
         orderNumber: invoice_number,
         customer,
         amount,
-        status: status || 'Pending', // Changed to Pending to match DB constraint
+        status: status || 'Processing', // Reverted to Processing as default for delivery_status map
+        paymentStatus: paymentStatus || 'Pending',
         date,
         dueDate: due_date
     };

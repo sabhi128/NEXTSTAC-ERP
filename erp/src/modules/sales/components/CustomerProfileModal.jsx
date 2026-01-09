@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Building, Mail, Phone, MapPin, Calendar, ShoppingBag, FileText, CheckCircle, XCircle, User } from 'lucide-react';
+import { X, Building, Mail, Phone, MapPin, Calendar, ShoppingBag, FileText, CheckCircle, XCircle, User, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CustomerProfileModal({ isOpen, onClose, customer, onEdit }) {
+    const [activeTab, setActiveTab] = useState('history');
+
     if (!isOpen || !customer) return null;
 
     const getStatusBadge = (status) => {

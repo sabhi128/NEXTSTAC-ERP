@@ -101,6 +101,37 @@ export default function BillList() {
                     <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
                 </motion.div>
                 <p className="mt-4 font-medium">Loading bills...</p>
+            </div>
+        );
+
+        return (
+            <div className="space-y-6 max-w-[1920px] mx-auto p-4 md:p-8">
+                <ConfirmationModal
+                    isOpen={deleteConfirm.isOpen}
+                    onClose={() => setDeleteConfirm({ isOpen: false, id: null, isDeleteAll: false })}
+                    onConfirm={() => {
+                        if (deleteConfirm.isDeleteAll) {
+                            deleteAllMutation.mutate();
+                        } else {
+                            deleteMutation.mutate(deleteConfirm.id);
+                        }
+                    }}
+                    title={deleteConfirm.isDeleteAll ? "Delete All Bills?" : "Delete Bill"}
+                    message={deleteConfirm.isDeleteAll ? "Are you sure you want to delete ALL bills? This cannot be undone." : "Are you sure you want to delete this bill? This action cannot be undone."}
+                    confirmText={deleteConfirm.isDeleteAll ? "Delete All" : "Delete Bill"}
+                    variant="danger"
+                />
+                <BillModal
+                    isOpen={isFormOpen}
+                    onClose={() => setIsFormOpen(false)}
+                    onSubmit={(data) => addMutation.mutate(data)}
+                />
+
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">Bills & Invoices</h2>
+                        <p className="text-slate-400">Vendor invoices and payments due</p>
+                    </div>
                     <div className="flex gap-4">
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -139,136 +170,136 @@ export default function BillList() {
                     </div>
                 </div>
 
-                {/* Mobile Card View */ }
-        <div className="md:hidden space-y-4">
-            {filteredBills?.map(bill => (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key={bill.id}
-                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 p-5 rounded-2xl shadow-sm"
-                >
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-700/50 rounded-lg text-purple-400">
-                                <Receipt className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-white">{bill.billNumber}</h3>
-                                <p className="text-sm text-slate-400">{bill.vendor}</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => handleStatusClick(bill)}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all border ${getStatusColor(bill.status)}`}
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {filteredBills?.map(bill => (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            key={bill.id}
+                            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 p-5 rounded-2xl shadow-sm"
                         >
-                            {getStatusIcon(bill.status)}
-                            <span className="text-xs font-bold">{bill.status}</span>
-                        </button>
-                    </div>
-
-                    <div className="space-y-3 mb-4 bg-slate-900/30 p-3 rounded-xl border border-slate-700/30">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Bill Date:</span>
-                            <span className="text-slate-300 font-medium">{new Date(bill.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Due Date:</span>
-                            <span className={`font-medium ${new Date(bill.dueDate) < new Date() && bill.status !== 'Paid' ? 'text-red-400' : 'text-slate-300'}`}>
-                                {new Date(bill.dueDate).toLocaleDateString()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-sm pt-2 border-t border-slate-700/50">
-                            <span className="font-medium text-slate-400">Amount Due:</span>
-                            <span className="font-bold text-white">${bill.amount.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
-                        <button
-                            onClick={() => {
-                                setBillToDelete(bill);
-                                setIsDeleteModalOpen(true);
-                            }}
-                            className="w-full py-2 flex items-center justify-center text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20 text-sm font-medium"
-                        >
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </button>
-                    </div>
-                </motion.div>
-            ))}
-        </div>
-
-        {/* Desktop Table View */ }
-        <div className="hidden md:block bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-900/50 border-b border-slate-700">
-                        <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Bill #</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Vendor</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Date</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Due Date</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs text-right">Amount</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Status</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/50">
-                        <AnimatePresence>
-                            {filteredBills?.map(bill => (
-                                <motion.tr
-                                    key={bill.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="hover:bg-slate-700/30 transition-colors group"
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-700/50 rounded-lg text-purple-400">
+                                        <Receipt className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">{bill.billNumber}</h3>
+                                        <p className="text-sm text-slate-400">{bill.vendor}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleStatusClick(bill)}
+                                    className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all border ${getStatusColor(bill.status)}`}
                                 >
-                                    <td className="px-6 py-4 font-mono font-medium text-purple-400">{bill.billNumber}</td>
-                                    <td className="px-6 py-4 font-medium text-white">{bill.vendor}</td>
-                                    <td className="px-6 py-4 text-slate-400">{new Date(bill.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`${new Date(bill.dueDate) < new Date() && bill.status !== 'Paid' ? 'text-red-400 font-bold' : 'text-slate-400'}`}>
-                                            {new Date(bill.dueDate).toLocaleDateString()}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-bold text-white tracking-wide">${bill.amount.toLocaleString()}</td>
-                                    <td className="px-6 py-4">
-                                        <button
-                                            onClick={() => handleStatusClick(bill)}
-                                            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all active:scale-95 border ${getStatusColor(bill.status)}`}
-                                            title="Click to cycle status"
-                                        >
-                                            {getStatusIcon(bill.status)}
-                                            <span className="text-xs font-bold uppercase tracking-wider">
-                                                {bill.status}
-                                            </span>
-                                        </button>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => {
-                                                setBillToDelete(bill);
-                                                setIsDeleteModalOpen(true);
-                                            }}
-                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </AnimatePresence>
-                    </tbody>
-                </table>
-            </div>
-            {filteredBills?.length === 0 && (
-                <div className="py-20 text-center text-slate-500">
-                    <Receipt className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>No bills found</p>
+                                    {getStatusIcon(bill.status)}
+                                    <span className="text-xs font-bold">{bill.status}</span>
+                                </button>
+                            </div>
+
+                            <div className="space-y-3 mb-4 bg-slate-900/30 p-3 rounded-xl border border-slate-700/30">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">Bill Date:</span>
+                                    <span className="text-slate-300 font-medium">{new Date(bill.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">Due Date:</span>
+                                    <span className={`font-medium ${new Date(bill.dueDate) < new Date() && bill.status !== 'Paid' ? 'text-red-400' : 'text-slate-300'}`}>
+                                        {new Date(bill.dueDate).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-sm pt-2 border-t border-slate-700/50">
+                                    <span className="font-medium text-slate-400">Amount Due:</span>
+                                    <span className="font-bold text-white">${bill.amount.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2">
+                                <button
+                                    onClick={() => {
+                                        setBillToDelete(bill);
+                                        setIsDeleteModalOpen(true);
+                                    }}
+                                    className="w-full py-2 flex items-center justify-center text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20 text-sm font-medium"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
-            )}
-        </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-900/50 border-b border-slate-700">
+                                <tr>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Bill #</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Vendor</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Date</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Due Date</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs text-right">Amount</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs">Status</th>
+                                    <th className="px-6 py-4 font-bold text-slate-400 uppercase tracking-wider text-xs text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/50">
+                                <AnimatePresence>
+                                    {filteredBills?.map(bill => (
+                                        <motion.tr
+                                            key={bill.id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="hover:bg-slate-700/30 transition-colors group"
+                                        >
+                                            <td className="px-6 py-4 font-mono font-medium text-purple-400">{bill.billNumber}</td>
+                                            <td className="px-6 py-4 font-medium text-white">{bill.vendor}</td>
+                                            <td className="px-6 py-4 text-slate-400">{new Date(bill.date).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`${new Date(bill.dueDate) < new Date() && bill.status !== 'Paid' ? 'text-red-400 font-bold' : 'text-slate-400'}`}>
+                                                    {new Date(bill.dueDate).toLocaleDateString()}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-bold text-white tracking-wide">${bill.amount.toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => handleStatusClick(bill)}
+                                                    className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all active:scale-95 border ${getStatusColor(bill.status)}`}
+                                                    title="Click to cycle status"
+                                                >
+                                                    {getStatusIcon(bill.status)}
+                                                    <span className="text-xs font-bold uppercase tracking-wider">
+                                                        {bill.status}
+                                                    </span>
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => {
+                                                        setBillToDelete(bill);
+                                                        setIsDeleteModalOpen(true);
+                                                    }}
+                                                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </AnimatePresence>
+                            </tbody>
+                        </table>
+                    </div>
+                    {filteredBills?.length === 0 && (
+                        <div className="py-20 text-center text-slate-500">
+                            <Receipt className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <p>No bills found</p>
+                        </div>
+                    )}
+                </div>
             </div >
         );
-}
+    }

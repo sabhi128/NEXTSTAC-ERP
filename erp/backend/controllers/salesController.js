@@ -22,7 +22,7 @@ export const createOrder = async (req, res) => {
         orderNumber: invoice_number,
         customer,
         amount,
-        status: status || 'Processing',
+        status: status || 'Pending', // Changed to Pending to match DB constraint
         date,
         dueDate: due_date
     };

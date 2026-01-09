@@ -311,6 +311,67 @@ function initSchemaSQLite(db) {
             work_hours TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        // Finance (Invoices)
+        db.run(`CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY,
+            invoice_number TEXT UNIQUE NOT NULL,
+            customer_name TEXT,
+            date DATETIME,
+            due_date DATETIME,
+            amount REAL,
+            status TEXT CHECK(status IN ('Paid', 'Pending', 'Overdue')),
+            items_count INTEGER,
+            delivery_status TEXT DEFAULT 'Processing', -- Added directly to schema
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Migration for existing local DBs: Try to add delivery_status if missing
+        db.run(`ALTER TABLE invoices ADD COLUMN delivery_status TEXT DEFAULT 'Processing'`, (err) => {
+            // Ignore error if column already exists
+        });
+
+        // Inventory
+        db.run(`CREATE TABLE IF NOT EXISTS products (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            sku TEXT UNIQUE NOT NULL,
+            category TEXT,
+            price REAL NOT NULL,
+            stock INTEGER DEFAULT 0,
+            min_stock INTEGER DEFAULT 10,
+            supplier TEXT,
+            status TEXT DEFAULT 'Active',
+            warehouse TEXT,
+            last_updated DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS stock_movements (
+            id TEXT PRIMARY KEY,
+            product_id TEXT,
+            type TEXT CHECK(type IN ('In', 'Out', 'Adjustment')),
+            quantity INTEGER,
+            warehouse TEXT,
+            reference_code TEXT,
+            reason TEXT,
+            date DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )`);
+
+        // Vendors
+        db.run(`CREATE TABLE IF NOT EXISTS vendors (
+            id TEXT PRIMARY KEY,
+            company_name TEXT NOT NULL,
+            contact_person TEXT,
+            email TEXT,
+            phone TEXT,
+            address TEXT,
+            rating REAL,
+            status TEXT DEFAULT 'Active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
     });
 }
 

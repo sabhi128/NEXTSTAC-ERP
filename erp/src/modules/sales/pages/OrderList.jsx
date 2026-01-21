@@ -31,10 +31,12 @@ export default function OrderList() {
     const [statusFilter, setStatusFilter] = useState('All'); // All, Processing, Shipped, Delivered, Cancelled
     const [paymentFilter, setPaymentFilter] = useState('All'); // All, Paid, Pending, Overdue
 
-    const { data: orders = [], isLoading } = useQuery({
+    const { data: orders = [], isLoading, isError, error } = useQuery({
         queryKey: ['orders'],
         queryFn: () => api.get('/sales/orders'),
     });
+
+
 
     const deleteOrderMutation = useMutation({
         // Currently no single delete endpoint for orders in salesRoutes, 
@@ -127,6 +129,7 @@ export default function OrderList() {
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-400">Loading orders...</div>;
+    if (isError) return <div className="p-8 text-center text-red-400">Error loading orders: {error.message}</div>;
 
     return (
         <motion.div

@@ -37,10 +37,14 @@ export default function ProductList() {
 
     const queryClient = useQueryClient();
 
-    const { data: products, isLoading } = useQuery({
+    const { data: products, isLoading, isError, error } = useQuery({
         queryKey: ['products'],
         queryFn: () => api.get('/inventory/products'), // API call
     });
+
+    // ... (keep mutations)
+
+    // ...
 
     const addProductMutation = useMutation({
         mutationFn: (data) => api.post('/inventory/products', { ...data, status: 'Active' }), // API call
@@ -155,6 +159,7 @@ export default function ProductList() {
     });
 
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading products...</div>;
+    if (isError) return <div className="p-8 text-center text-red-500">Error loading products: {error.message}</div>;
 
     return (
         <motion.div

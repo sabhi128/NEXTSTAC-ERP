@@ -1696,7 +1696,7 @@ dbAdapter.crm = {
 dbAdapter.purchasing = {
     getVendors: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('vendors').select('*');
             if (error) throw new Error(error.message);
             return data;
         } else {

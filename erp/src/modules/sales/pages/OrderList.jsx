@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '../../../context/ToastContext';
 // import { mockDataService } from '../../../services/mockDataService';
 import {
     ShoppingCart,
@@ -25,6 +26,7 @@ import { api } from '../../../lib/api';
 
 export default function OrderList() {
     const queryClient = useQueryClient();
+    const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, id: null, isDeleteAll: false });
@@ -85,6 +87,10 @@ export default function OrderList() {
         onSuccess: () => {
             queryClient.invalidateQueries(['orders']);
             setIsModalOpen(false);
+        },
+        onError: (error) => {
+            console.error("Order creation failed:", error);
+            showToast(`Failed to create order: ${error.message}`, 'error');
         }
     });
 

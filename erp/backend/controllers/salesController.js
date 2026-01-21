@@ -30,6 +30,7 @@ export const createOrder = async (req, res) => {
 
     try {
         const savedOrder = await dbAdapter.sales.createOrder(newOrder);
+        console.log('Order created successfully:', id);
         res.status(201).json(savedOrder);
     } catch (err) {
         console.error('Create Order Error:', err);

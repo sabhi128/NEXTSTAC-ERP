@@ -2031,8 +2031,19 @@ dbAdapter.sales = {
                 date: order.date,
                 due_date: order.dueDate
             };
+
             const { error } = await supabase.from('invoices').insert([payload]);
-            if (error) throw new Error(error.message);
+            if (error) {
+                // Fallback: If delivery_status doesn't exist (code 42703 implies undefined column in Postgres)
+                if (error.code === '42703' || error.message?.includes('delivery_status')) {
+                    console.warn('delivery_status column missing, retrying without it');
+                    delete payload.delivery_status;
+                    const { error: retryError } = await supabase.from('invoices').insert([payload]);
+                    if (retryError) throw new Error(retryError.message);
+                } else {
+                    throw new Error(error.message);
+                }
+            }
             return order;
         } else {
             return new Promise((resolve, reject) => {

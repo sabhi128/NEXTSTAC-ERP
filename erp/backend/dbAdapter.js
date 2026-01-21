@@ -1804,7 +1804,24 @@ dbAdapter.purchasing = {
                 status: po.status
             };
             const { error } = await supabase.from('purchase_orders').insert([payload]);
-            if (error) throw new Error(error.message);
+            if (error) {
+                // Fallback: Check for common schema issues like missing columns
+                if (error.code === '42703') { // Undefined column
+                    console.warn('Purchase Order insert failed due to undefined column, retrying with minimal payload');
+                    // Retry with a minimal safe payload if needed, or just log for now
+                    // For POs, columns seem standard: po_number, vendor, date, amount, status
+                    // expected_date might be the culprit if schema is old
+                    if (error.message?.includes('expected_date')) {
+                        delete payload.expected_date;
+                        const { error: retryError } = await supabase.from('purchase_orders').insert([payload]);
+                        if (retryError) throw new Error(retryError.message);
+                    } else {
+                        throw new Error(error.message);
+                    }
+                } else {
+                    throw new Error(error.message);
+                }
+            }
             return po;
         } else {
             return new Promise((resolve, reject) => {

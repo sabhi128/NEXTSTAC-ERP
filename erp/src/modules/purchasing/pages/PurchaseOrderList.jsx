@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '../../../context/ToastContext';
 // import { mockDataService } from '../../../services/mockDataService';
 import {
     ShoppingBag,
@@ -34,12 +35,19 @@ export default function PurchaseOrderList() {
         queryFn: () => api.get('/purchasing/purchase-orders'),
     });
 
+    const { showToast } = useToast();
+
     const addMutation = useMutation({
         mutationFn: (data) => api.post('/purchasing/purchase-orders', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['purchaseOrders']);
             setIsFormOpen(false);
             setEditingPO(null);
+            showToast('Purchase Order created successfully', 'success');
+        },
+        onError: (error) => {
+            console.error("PO Creation Failed:", error);
+            showToast(`Failed to create PO: ${error.message}`, 'error');
         }
     });
 

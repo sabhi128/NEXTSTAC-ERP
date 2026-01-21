@@ -16,10 +16,18 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
         status: 'Draft'
     });
 
-    const { data: vendors } = useQuery({
+    const { data: vendors, isError, error } = useQuery({
         queryKey: ['vendors'],
-        queryFn: () => api.get('/purchasing/vendors'),
+        queryFn: async () => {
+            const res = await api.get('/purchasing/vendors');
+            console.log("Fetched vendors:", res);
+            return res;
+        },
     });
+
+    if (isError) {
+        console.error("Error fetching vendors:", error);
+    }
 
     useEffect(() => {
         if (isOpen) {

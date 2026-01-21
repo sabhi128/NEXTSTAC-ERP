@@ -1,50 +1,59 @@
+import React from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
-import DashboardLayout from './layouts/DashboardLayout';
-import CompanyLayout from './modules/company/layouts/CompanyLayout';
-import HRLayout from './modules/hr/layouts/HRLayout';
-import InventoryLayout from './modules/inventory/layouts/InventoryLayout';
-import FinanceLayout from './modules/finance/layouts/FinanceLayout';
-import SalesLayout from './modules/sales/layouts/SalesLayout';
-import PurchasingLayout from './modules/purchasing/layouts/PurchasingLayout';
-import DocumentsLayout from './modules/documents/layouts/DocumentsLayout';
-import AuditLayout from './modules/audit/layouts/AuditLayout';
-import LoginPage from './pages/auth/LoginPage';
-import DashboardHome from './modules/dashboard/pages/DashboardHome';
-import EcommerceDashboard from './modules/dashboard/pages/EcommerceDashboard';
-import DevDashboard from './modules/dashboard/pages/DevDashboard';
-import EmployeeDashboard from './modules/dashboard/pages/EmployeeDashboard';
-import CompanyProfile from './modules/company/pages/CompanyProfile';
-import DepartmentList from './modules/company/pages/DepartmentList';
-import BranchList from './modules/company/pages/BranchList';
-import EmployeeList from './modules/hr/pages/EmployeeList';
-import EmployeeDetails from './modules/hr/pages/EmployeeDetails';
-import AttendanceLog from './modules/hr/pages/AttendanceLog';
-import PayrollList from './modules/hr/pages/PayrollList';
-import LeaveManagement from './modules/hr/pages/LeaveManagement';
-import LeaveHistory from './modules/hr/pages/LeaveHistory';
-import EmployeeDocuments from './modules/hr/pages/EmployeeDocuments';
-import ProductList from './modules/inventory/pages/ProductList';
-import VendorList from './modules/inventory/pages/VendorList';
-import WarehouseList from './modules/inventory/pages/WarehouseList';
-import StockMovements from './modules/inventory/pages/StockMovements';
-import InvoiceList from './modules/finance/pages/InvoiceList';
-import Journal from './modules/finance/pages/Journal';
-import Ledger from './modules/finance/pages/Ledger';
-import PaymentList from './modules/finance/pages/PaymentList';
-import Reports from './modules/finance/pages/Reports';
-import GenerateReports from './modules/finance/pages/GenerateReports';
-import Returns from './modules/finance/pages/Returns';
-import OrderList from './modules/sales/pages/OrderList';
-import CustomerList from './modules/sales/pages/CustomerList';
-import LeadList from './modules/sales/pages/LeadList';
-import FollowUpList from './modules/sales/pages/FollowUpList';
-import SupplierList from './modules/purchasing/pages/SupplierList';
-import PurchaseOrderList from './modules/purchasing/pages/PurchaseOrderList';
-import BillList from './modules/purchasing/pages/BillList';
-import ContractList from './modules/purchasing/pages/ContractList';
-import FileManager from './modules/documents/pages/FileManager';
-import ActivityLogs from './modules/audit/pages/ActivityLogs';
-import UserManagement from './modules/admin/pages/UserManagement';
+const DashboardLayout = React.lazy(() => import('./layouts/DashboardLayout'));
+const CompanyLayout = React.lazy(() => import('./modules/company/layouts/CompanyLayout'));
+const HRLayout = React.lazy(() => import('./modules/hr/layouts/HRLayout'));
+const InventoryLayout = React.lazy(() => import('./modules/inventory/layouts/InventoryLayout'));
+const FinanceLayout = React.lazy(() => import('./modules/finance/layouts/FinanceLayout'));
+const SalesLayout = React.lazy(() => import('./modules/sales/layouts/SalesLayout'));
+const PurchasingLayout = React.lazy(() => import('./modules/purchasing/layouts/PurchasingLayout'));
+const DocumentsLayout = React.lazy(() => import('./modules/documents/layouts/DocumentsLayout'));
+const AuditLayout = React.lazy(() => import('./modules/audit/layouts/AuditLayout'));
+
+const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'));
+const DashboardHome = React.lazy(() => import('./modules/dashboard/pages/DashboardHome'));
+const EcommerceDashboard = React.lazy(() => import('./modules/dashboard/pages/EcommerceDashboard'));
+const DevDashboard = React.lazy(() => import('./modules/dashboard/pages/DevDashboard'));
+const EmployeeDashboard = React.lazy(() => import('./modules/dashboard/pages/EmployeeDashboard'));
+
+const CompanyProfile = React.lazy(() => import('./modules/company/pages/CompanyProfile'));
+const DepartmentList = React.lazy(() => import('./modules/company/pages/DepartmentList'));
+const BranchList = React.lazy(() => import('./modules/company/pages/BranchList'));
+
+const EmployeeList = React.lazy(() => import('./modules/hr/pages/EmployeeList'));
+const EmployeeDetails = React.lazy(() => import('./modules/hr/pages/EmployeeDetails'));
+const AttendanceLog = React.lazy(() => import('./modules/hr/pages/AttendanceLog'));
+const PayrollList = React.lazy(() => import('./modules/hr/pages/PayrollList'));
+const LeaveManagement = React.lazy(() => import('./modules/hr/pages/LeaveManagement'));
+const LeaveHistory = React.lazy(() => import('./modules/hr/pages/LeaveHistory'));
+const EmployeeDocuments = React.lazy(() => import('./modules/hr/pages/EmployeeDocuments'));
+
+const ProductList = React.lazy(() => import('./modules/inventory/pages/ProductList'));
+const VendorList = React.lazy(() => import('./modules/inventory/pages/VendorList'));
+const WarehouseList = React.lazy(() => import('./modules/inventory/pages/WarehouseList'));
+const StockMovements = React.lazy(() => import('./modules/inventory/pages/StockMovements'));
+
+const InvoiceList = React.lazy(() => import('./modules/finance/pages/InvoiceList'));
+const Journal = React.lazy(() => import('./modules/finance/pages/Journal'));
+const Ledger = React.lazy(() => import('./modules/finance/pages/Ledger'));
+const PaymentList = React.lazy(() => import('./modules/finance/pages/PaymentList'));
+const Reports = React.lazy(() => import('./modules/finance/pages/Reports'));
+const GenerateReports = React.lazy(() => import('./modules/finance/pages/GenerateReports'));
+const Returns = React.lazy(() => import('./modules/finance/pages/Returns'));
+
+const OrderList = React.lazy(() => import('./modules/sales/pages/OrderList'));
+const CustomerList = React.lazy(() => import('./modules/sales/pages/CustomerList'));
+const LeadList = React.lazy(() => import('./modules/sales/pages/LeadList'));
+const FollowUpList = React.lazy(() => import('./modules/sales/pages/FollowUpList'));
+
+const SupplierList = React.lazy(() => import('./modules/purchasing/pages/SupplierList'));
+const PurchaseOrderList = React.lazy(() => import('./modules/purchasing/pages/PurchaseOrderList'));
+const BillList = React.lazy(() => import('./modules/purchasing/pages/BillList'));
+const ContractList = React.lazy(() => import('./modules/purchasing/pages/ContractList'));
+
+const FileManager = React.lazy(() => import('./modules/documents/pages/FileManager'));
+const ActivityLogs = React.lazy(() => import('./modules/audit/pages/ActivityLogs'));
+const UserManagement = React.lazy(() => import('./modules/admin/pages/UserManagement'));
 import { useAuth } from './context/AuthContext';
 
 // Protected Route Wrapper

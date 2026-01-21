@@ -140,6 +140,7 @@ export const AuthProvider = ({ children }) => {
                 // Manually save session to sessionStorage
                 const sessionData = {
                     access_token: data.session.access_token,
+                    refresh_token: data.session.refresh_token,
                     user: userProfile,
                     expiresAt: Date.now() + (12 * 60 * 60 * 1000) // 12 hours (shorter for session)
                 };

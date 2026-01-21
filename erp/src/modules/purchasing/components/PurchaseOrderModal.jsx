@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ShoppingBag, Calendar, DollarSign, User, Save } from 'lucide-react';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,7 +18,7 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
 
     const { data: vendors } = useQuery({
         queryKey: ['vendors'],
-        queryFn: mockDataService.getVendors,
+        queryFn: () => api.get('/purchasing/vendors'),
     });
 
     useEffect(() => {

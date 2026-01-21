@@ -80,7 +80,7 @@ export default function PurchaseOrderList() {
         }
     };
 
-    const filteredOrders = orders?.filter(o =>
+    const filteredOrders = purchaseOrders?.filter(o =>
         o.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         o.vendor.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -203,8 +203,7 @@ export default function PurchaseOrderList() {
 
                         <button
                             onClick={() => {
-                                setOrderToDelete(po);
-                                setIsDeleteModalOpen(true);
+                                setDeleteConfirm({ isOpen: true, id: po.id });
                             }}
                             className="w-full py-2 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-500/20"
                         >
@@ -258,8 +257,7 @@ export default function PurchaseOrderList() {
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => {
-                                                    setOrderToDelete(po);
-                                                    setIsDeleteModalOpen(true);
+                                                    setDeleteConfirm({ isOpen: true, id: po.id });
                                                 }}
                                                 className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                                 title="Delete PO"

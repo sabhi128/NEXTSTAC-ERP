@@ -138,7 +138,7 @@ export default function PurchaseOrderList() {
                 <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => setIsFormOpen(true)}
                     className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-purple-500/25 flex items-center gap-2 font-bold transition-all"
                 >
                     <Plus className="w-5 h-5" />

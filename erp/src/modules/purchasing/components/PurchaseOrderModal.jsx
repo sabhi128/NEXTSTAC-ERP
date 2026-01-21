@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
     const [formData, setFormData] = useState({
         vendor: '',
+        vendorId: null,
         date: new Date().toISOString().split('T')[0],
         expectedDate: '',
         amount: '',
@@ -23,6 +24,7 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
         if (isOpen) {
             setFormData({
                 vendor: '',
+                vendorId: null,
                 date: new Date().toISOString().split('T')[0],
                 expectedDate: '',
                 amount: '',
@@ -78,7 +80,14 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
                                         required
                                         className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-white transition-all font-medium appearance-none"
                                         value={formData.vendor}
-                                        onChange={e => setFormData({ ...formData, vendor: e.target.value })}
+                                        onChange={e => {
+                                            const selectedVendor = vendors?.find(v => v.companyName === e.target.value);
+                                            setFormData({
+                                                ...formData,
+                                                vendor: e.target.value,
+                                                vendorId: selectedVendor ? selectedVendor.id : null
+                                            });
+                                        }}
                                     >
                                         <option value="">Select Vendor</option>
                                         {vendors?.map(v => (

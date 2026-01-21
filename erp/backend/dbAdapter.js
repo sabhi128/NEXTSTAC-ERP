@@ -1815,6 +1815,26 @@ dbAdapter.purchasing = {
                         delete payload.expected_date;
                         const { error: retryError } = await supabase.from('purchase_orders').insert([payload]);
                         if (retryError) throw new Error(retryError.message);
+                    } else if (error.message?.includes('vendor')) {
+                        // Vendor column missing, try vendor_id or vendor_name
+                        console.warn('vendor column missing, attempting fallback to vendor_id or vendor_name');
+                        delete payload.vendor;
+
+                        // Try with vendor_id if available
+                        if (po.vendorId) {
+                            const payloadWithId = { ...payload, vendor_id: po.vendorId };
+                            const { error: retryIdError } = await supabase.from('purchase_orders').insert([payloadWithId]);
+                            if (!retryIdError) return po; // Success with ID
+                            // If ID failed, fall through to try name?
+                        }
+
+                        // Try with vendor_name as last resort (or if no ID)
+                        const payloadWithName = { ...payload, vendor_name: po.vendor };
+                        const { error: retryNameError } = await supabase.from('purchase_orders').insert([payloadWithName]);
+                        if (retryNameError) {
+                            // If both failed, throw original or last error
+                            throw new Error(`Failed with vendor fallbacks: ${retryNameError.message}`);
+                        }
                     } else {
                         throw new Error(error.message);
                     }

@@ -84,11 +84,11 @@ export const getPurchaseOrders = async (req, res) => {
 };
 
 export const createPurchaseOrder = async (req, res) => {
-    const { vendor, date, expectedDate, amount, status } = req.body;
+    const { vendor, vendorId, date, expectedDate, amount, status } = req.body;
     const id = uuidv4();
     const poNumber = `PO-${Math.floor(10000 + Math.random() * 90000)}`;
     const newPO = {
-        id, poNumber, vendor, date, expectedDate, amount, status: status || 'Draft'
+        id, poNumber, vendor, vendorId, date, expectedDate, amount, status: status || 'Draft'
     };
 
     try {

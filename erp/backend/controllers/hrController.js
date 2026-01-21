@@ -205,6 +205,16 @@ export const deleteEmployee = async (req, res) => {
     }
 };
 
+export const deleteAllEmployees = async (req, res) => {
+    try {
+        await dbAdapter.hr.deleteAllEmployees();
+        res.json({ success: true, message: 'All employees deleted' });
+    } catch (err) {
+        console.error('Delete All Employees Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // --- Leave Management ---
 
 export const getAllLeaves = async (req, res) => {
@@ -343,6 +353,16 @@ export const deleteLeave = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+export const deleteAllLeaves = async (req, res) => {
+    try {
+        await dbAdapter.hr.deleteAllLeaves();
+        res.json({ success: true, message: 'All leave requests deleted' });
+    } catch (err) {
+        console.error('Delete All Leaves Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
 // --- Attendance ---
 
 export const getAllAttendance = async (req, res) => {
@@ -451,6 +471,22 @@ export const updateAttendance = async (req, res) => {
 
     } catch (err) {
         console.error('Update Attendance Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllAttendance = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        await dbAdapter.hr.deleteAllAttendance();
+        res.json({ success: true, message: 'All attendance records deleted' });
+
+    } catch (err) {
+        console.error('Delete All Attendance Error:', err);
         res.status(500).json({ error: err.message });
     }
 };

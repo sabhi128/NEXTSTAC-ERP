@@ -173,6 +173,12 @@ export const mockDataService = {
         return { success: true };
     },
 
+    deleteAllEmployees: async () => {
+        const { api } = await import('../lib/api');
+        await api.delete('/hr/employees/all');
+        return { success: true };
+    },
+
     // --- INVENTORY ---
     getProducts: async () => {
         const { api } = await import('../lib/api');
@@ -656,6 +662,11 @@ export const mockDataService = {
             return { success: true, data: salaries[index] };
         }
         return { success: false, error: 'Salary record not found' };
+    },
+
+    deleteAllSalaries: () => {
+        localStorage.removeItem('erp_mock_salaries');
+        return { success: true };
     },
 
     // Company Profile

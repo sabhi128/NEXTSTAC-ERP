@@ -6,7 +6,8 @@ import {
     Clock,
     Search,
     Filter,
-    Download
+    Download,
+    Trash2
 } from 'lucide-react';
 
 
@@ -15,9 +16,14 @@ import {
 
 // ... (imports remain)
 import AttendanceModal from '../components/AttendanceModal';
+import ConfirmationModal from '../../../components/ConfirmationModal';
+import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 
 export default function AttendanceLog() {
     const queryClient = useQueryClient();
+    const { user } = useAuth();
+    const { showToast } = useToast();
     const { data: attendance, isLoading } = useQuery({
         queryKey: ['attendance'],
         queryFn: () => api.get('/hr/attendance'),
@@ -42,6 +48,22 @@ export default function AttendanceLog() {
         onSuccess: () => {
             queryClient.invalidateQueries(['attendance']);
             setIsModalOpen(false);
+        }
+    });
+
+    const [deleteAllModal, setDeleteAllModal] = useState(false);
+
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            return await api.delete('/hr/attendance/all');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['attendance']);
+            showToast('All attendance records deleted successfully', 'success');
+            setDeleteAllModal(false);
+        },
+        onError: (error) => {
+            showToast(error.message || 'Failed to delete all attendance records', 'error');
         }
     });
 
@@ -132,6 +154,21 @@ export default function AttendanceLog() {
 
     return (
         <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">Attendance Log</h2>
+                    <p className="text-slate-400">Monitor and manage employee attendance.</p>
+                </div>
+                {user?.role === 'super_admin' && (
+                    <button
+                        onClick={() => setDeleteAllModal(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Delete All
+                    </button>
+                )}
+            </div>
             {/* ... (rest of the component structure is unchanged, just updating table rows below) ... */}
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-xl overflow-hidden">
                 <div className="overflow-x-auto">
@@ -200,6 +237,16 @@ export default function AttendanceLog() {
                 record={selectedRecord}
                 employees={employees}
                 onSave={handleSave}
+            />
+
+            <ConfirmationModal
+                isOpen={deleteAllModal}
+                onClose={() => setDeleteAllModal(false)}
+                onConfirm={() => deleteAllMutation.mutate()}
+                title="Delete All Attendance Records?"
+                message="Are you sure you want to delete ALL attendance records? This action cannot be undone."
+                confirmText={deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+                variant="destructive"
             />
         </div >
     );

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { subDays, isAfter } from 'date-fns';
 import { useToast } from '../../../context/ToastContext';
+import { Trash2 } from 'lucide-react';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 export default function PayrollList() {
     const queryClient = useQueryClient();
@@ -67,7 +69,10 @@ export default function PayrollList() {
         }
 
         return matchesSearch && matchesPeriod;
+
     });
+
+    const [deleteAllModal, setDeleteAllModal] = useState(false);
 
     const handleRunPayroll = () => {
         setIsModalOpen(true);
@@ -75,6 +80,15 @@ export default function PayrollList() {
 
     const handleConfirmRun = (period) => {
         processPayrollMutation.mutate(period);
+    };
+
+    const handleDeleteAll = () => {
+        const result = mockDataService.deleteAllSalaries();
+        if (result.success) {
+            queryClient.invalidateQueries(['salaries']);
+            showToast('All payroll records deleted', 'success');
+            setDeleteAllModal(false);
+        }
     };
 
     const handleDownload = (record) => {
@@ -100,6 +114,14 @@ export default function PayrollList() {
                 >
                     <DollarSign className="w-5 h-5" />
                     Run Payroll
+
+                </button>
+                <button
+                    onClick={() => setDeleteAllModal(true)}
+                    className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl flex items-center justify-center gap-2 font-bold transition-all shadow-xl hover:shadow-red-500/20"
+                >
+                    <Trash2 className="w-5 h-5" />
+                    Delete All
                 </button>
             </div>
 
@@ -234,6 +256,17 @@ export default function PayrollList() {
                 onClose={() => setIsModalOpen(false)}
                 onRunPayroll={handleConfirmRun}
                 totalEmployees={15} // Using static count or could fetch from employee query
+
+            />
+
+            <ConfirmationModal
+                isOpen={deleteAllModal}
+                onClose={() => setDeleteAllModal(false)}
+                onConfirm={handleDeleteAll}
+                title="Delete All Payroll Records?"
+                message="Are you sure you want to delete ALL payroll records? This action cannot be undone."
+                confirmText="Delete All"
+                variant="destructive"
             />
         </div >
     );

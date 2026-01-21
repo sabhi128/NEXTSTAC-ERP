@@ -21,17 +21,20 @@ const employeeUploads = upload.fields([
 
 router.post('/employees', employeeUploads, hrController.createEmployee);
 router.put('/employees/:id', employeeUploads, hrController.updateEmployee);
+router.delete('/employees/all', hrController.deleteAllEmployees);
 router.delete('/employees/:id', hrController.deleteEmployee);
 
 // Leaves
 router.get('/leaves', hrController.getAllLeaves);
 router.post('/leaves', hrController.createLeave);
 router.put('/leaves/:id/status', hrController.updateLeaveStatus);
+router.delete('/leaves/all', hrController.deleteAllLeaves);
 router.delete('/leaves/:id', hrController.deleteLeave);
 
 // Attendance
 router.get('/attendance', hrController.getAllAttendance);
 router.post('/attendance', hrController.createAttendance);
 router.put('/attendance/:id', hrController.updateAttendance);
+router.delete('/attendance/all', hrController.deleteAllAttendance);
 
 export default router;

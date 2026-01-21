@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import { api } from '../../../lib/api';
 import {
     Calendar,
@@ -42,6 +44,8 @@ import {
 export default function LeaveManagement() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const { showToast } = useToast();
+    const [deleteAllModal, setDeleteAllModal] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewLeave, setViewLeave] = useState(null);
     const [newRequest, setNewRequest] = useState({
@@ -98,8 +102,20 @@ export default function LeaveManagement() {
         onSuccess: () => {
             queryClient.invalidateQueries(['leaves-all']);
         },
+
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            return await api.delete('/hr/leaves/all');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['leaves-all']);
+            showToast('All leave requests deleted successfully', 'success');
+            setDeleteAllModal(false);
+        },
         onError: (error) => {
-            alert(error.message);
+            showToast(error.message || 'Failed to delete all leaves', 'error');
         }
     });
 
@@ -186,6 +202,19 @@ export default function LeaveManagement() {
             {/* ... (Header and Filters unchanged) ... */}
 
             {/* ... (Start of table structure unchanged) ... */}
+
+            <div className="flex justify-end pb-4">
+                {user?.role !== 'user' && (
+                    <Button
+                        variant="destructive"
+                        onClick={() => setDeleteAllModal(true)}
+                        className="shadow-md bg-red-600 hover:bg-red-700 text-white border-0"
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete All
+                    </Button>
+                )}
+            </div>
 
             <div className="hidden md:block bg-slate-800/50 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-xl overflow-hidden">
                 <Table>
@@ -423,6 +452,15 @@ export default function LeaveManagement() {
                 document.body
             )}
 
+            <ConfirmationModal
+                isOpen={deleteAllModal}
+                onClose={() => setDeleteAllModal(false)}
+                onConfirm={() => deleteAllMutation.mutate()}
+                title="Delete All Leave Requests?"
+                message="Are you sure you want to delete ALL leave requests? This action cannot be undone."
+                confirmText={deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+                variant="destructive"
+            />
             {/* View Details Modal */}
             {viewLeave && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">

@@ -490,6 +490,23 @@ dbAdapter.hr = {
         }
     },
 
+    deleteAllEmployees: async () => {
+        if (isVercel) {
+            if (!supabase) throw new Error('Supabase client not initialized');
+            // Delete all by matching a condition that is always true
+            const { error } = await supabase.from('employees').delete().gte('created_at', '1900-01-01');
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM employees", [], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    },
+
     // Leaves
     getAllLeaves: async () => {
         if (isVercel) {
@@ -565,6 +582,21 @@ dbAdapter.hr = {
         } else {
             return new Promise((resolve, reject) => {
                 db.run("DELETE FROM leaves WHERE id = ?", [id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    },
+
+    deleteAllLeaves: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('leaves').delete().gte('created_at', '1900-01-01');
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM leaves", [], function (err) {
                     if (err) reject(err);
                     else resolve({ success: true });
                 });
@@ -660,6 +692,21 @@ dbAdapter.hr = {
                 db.run(sql, values, function (err) {
                     if (err) reject(err);
                     else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
+    deleteAllAttendance: async () => {
+        if (isVercel) {
+            const { error } = await supabase.from('attendance').delete().gte('created_at', '1900-01-01');
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM attendance", [], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
                 });
             });
         }

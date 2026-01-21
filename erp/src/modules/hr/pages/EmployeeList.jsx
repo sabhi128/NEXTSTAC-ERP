@@ -50,6 +50,7 @@ export default function EmployeeList() {
     const [viewingHistoryEmployee, setViewingHistoryEmployee] = useState(null);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
+    const [deleteAllModal, setDeleteAllModal] = useState(false);
 
     // Helper to get default filter based on role
     const getRoleBasedFilter = () => {
@@ -93,6 +94,20 @@ export default function EmployeeList() {
         },
         onError: (error) => {
             showToast(error.message || 'Failed to delete employee', 'error');
+        }
+    });
+
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            return await mockDataService.deleteAllEmployees();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['employees']);
+            showToast('All employees deleted successfully', 'success');
+            setDeleteAllModal(false);
+        },
+        onError: (error) => {
+            showToast(error.message || 'Failed to delete all employees', 'error');
         }
     });
 
@@ -211,6 +226,16 @@ export default function EmployeeList() {
                                 <List className="w-5 h-5" />
                             </button>
                         </div>
+                        {user?.role === 'super_admin' && (
+                            <Button
+                                variant="destructive"
+                                onClick={() => setDeleteAllModal(true)}
+                                className="flex-1 sm:flex-none shadow-xl rounded-2xl px-6 py-6 h-auto font-bold text-base bg-red-600 hover:bg-red-700 text-white border-0"
+                            >
+                                <Trash2 className="w-5 h-5 mr-2" />
+                                Delete All
+                            </Button>
+                        )}
                         <Button
                             onClick={() => { setEditingEmployee(null); setIsFormOpen(true); }}
                             className="flex-1 sm:flex-none shadow-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 rounded-2xl px-6 py-6 h-auto font-bold text-base"
@@ -553,6 +578,16 @@ export default function EmployeeList() {
                 title="Delete Employee?"
                 message={`Are you sure you want to remove ${deleteModal.name}? This action cannot be undone.`}
                 confirmText="Delete"
+                variant="destructive"
+            />
+
+            <ConfirmationModal
+                isOpen={deleteAllModal}
+                onClose={() => setDeleteAllModal(false)}
+                onConfirm={() => deleteAllMutation.mutate()}
+                title="Delete All Employees?"
+                message="Are you sure you want to delete ALL employees? This action cannot be undone and will remove all employee records permanently."
+                confirmText={deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
                 variant="destructive"
             />
         </div >

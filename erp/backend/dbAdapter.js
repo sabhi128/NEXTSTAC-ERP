@@ -1780,9 +1780,18 @@ dbAdapter.purchasing = {
     // --- Purchase Orders ---
     getPurchaseOrders: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('purchase_orders').select('*');
+            // Join with vendors to get company_name for rows where 'vendor' column might be null
+            const { data, error } = await supabase
+                .from('purchase_orders')
+                .select('*, vendors ( company_name )');
+
             if (error) throw new Error(error.message);
-            return data;
+
+            // Normalize data: If 'vendor' column is missing/null, use the joined Name
+            return data.map(po => ({
+                ...po,
+                vendor: po.vendor || po.vendors?.company_name || 'Unknown'
+            }));
         } else {
             return new Promise((resolve, reject) => {
                 db.all(`SELECT id, po_number as poNumber, vendor, date, expected_date as expectedDate, amount, status FROM purchase_orders ORDER BY created_at DESC`, [], (err, rows) => {
@@ -1797,7 +1806,8 @@ dbAdapter.purchasing = {
             const payload = {
                 id: po.id,
                 po_number: po.poNumber,
-                vendor: po.vendor,
+                vendor: po.vendor, // Restore passing the name directly for robustness
+                vendor_id: po.vendorId,
                 date: po.date,
                 expected_date: po.expectedDate,
                 amount: po.amount,

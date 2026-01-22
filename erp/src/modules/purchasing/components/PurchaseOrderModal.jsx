@@ -16,18 +16,9 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
         status: 'Draft'
     });
 
-    const { data: vendors, isError, error } = useQuery({
+    const { data: vendors } = useQuery({
         queryKey: ['vendors'],
-        queryFn: async () => {
-            try {
-                const res = await api.get('/purchasing/vendors');
-                console.log("Debug Vendors:", res);
-                return res;
-            } catch (err) {
-                console.error("Debug Vendors Error:", err);
-                throw err;
-            }
-        },
+        queryFn: () => api.get('/purchasing/vendors'),
     });
 
     useEffect(() => {
@@ -72,14 +63,6 @@ export default function PurchaseOrderModal({ isOpen, onClose, onSubmit }) {
                             >
                                 <X className="w-5 h-5" />
                             </button>
-                        </div>
-
-                        {/* Debug Info Box */}
-                        <div className="bg-red-900/50 p-2 text-xs text-red-200 font-mono border-b border-red-500/20">
-                            DEBUG: Vendors Count: {vendors?.length ?? 'undefined'} <br />
-                            IsError: {isError ? 'YES' : 'NO'} <br />
-                            Error: {error?.message || 'None'} <br />
-                            Data Sample: {vendors?.[0] ? JSON.stringify(vendors[0]) : 'Empty'}
                         </div>
 
                         <div className="overflow-y-auto custom-scrollbar">

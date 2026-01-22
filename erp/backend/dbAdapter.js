@@ -1911,7 +1911,7 @@ dbAdapter.purchasing = {
             const { data, error } = await supabase
                 .from('bills')
                 .select('*, vendors ( company_name )')
-                .order('created_at', { ascending: false });
+                .order('date', { ascending: false });
 
             if (error) throw new Error(error.message);
 
@@ -1930,7 +1930,7 @@ dbAdapter.purchasing = {
                 db.all(`SELECT b.id, b.bill_number as billNumber, v.company_name as vendor, b.vendor_id as vendorId, b.date, b.due_date as dueDate, b.amount, b.status 
                         FROM bills b 
                         LEFT JOIN vendors v ON b.vendor_id = v.id 
-                        ORDER BY b.created_at DESC`, [], (err, rows) => {
+                        ORDER BY b.date DESC`, [], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
                 });

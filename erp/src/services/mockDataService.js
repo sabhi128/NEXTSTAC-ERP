@@ -252,47 +252,26 @@ export const mockDataService = {
     },
 
     // Vendors
-    getVendors: () => {
-        return getOrSeed(STORAGE_KEYS.VENDORS, () => ({
-            id: faker.string.uuid(),
-            companyName: faker.company.name(),
-            contactPerson: faker.person.fullName(),
-            email: faker.internet.email(),
-            phone: faker.phone.number(),
-            address: faker.location.streetAddress(),
-            rating: faker.number.int({ min: 1, max: 5 }),
-            status: faker.helpers.arrayElement(['Active', 'Inactive'])
-        }), 8);
+    getVendors: async () => {
+        const { api } = await import('../lib/api');
+        return api.get('/purchasing/vendors');
     },
 
-    addVendor: (vendor) => {
-        const vendors = mockDataService.getVendors();
-        const newVendor = {
-            id: faker.string.uuid(),
-            status: 'Active',
-            rating: 5,
-            ...vendor
-        };
-        vendors.unshift(newVendor);
-        localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(vendors));
-        return { success: true, data: newVendor };
+    addVendor: async (vendor) => {
+        const { api } = await import('../lib/api');
+        const data = await api.post('/purchasing/vendors', vendor);
+        return { success: true, data };
     },
 
-    updateVendor: (id, updates) => {
-        const vendors = mockDataService.getVendors();
-        const index = vendors.findIndex(v => v.id === id);
-        if (index !== -1) {
-            vendors[index] = { ...vendors[index], ...updates };
-            localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(vendors));
-            return { success: true, data: vendors[index] };
-        }
-        return { success: false, error: 'Vendor not found' };
+    updateVendor: async (id, updates) => {
+        const { api } = await import('../lib/api');
+        const data = await api.put(`/purchasing/vendors/${id}`, { updates });
+        return { success: true, data };
     },
 
-    deleteVendor: (id) => {
-        const vendors = mockDataService.getVendors();
-        const newVendors = vendors.filter(v => v.id !== id);
-        localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(newVendors));
+    deleteVendor: async (id) => {
+        const { api } = await import('../lib/api');
+        await api.delete(`/purchasing/vendors/${id}`);
         return { success: true };
     },
 

@@ -1780,7 +1780,7 @@ dbAdapter.purchasing = {
     // --- Purchase Orders ---
     getPurchaseOrders: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('purchase_orders').select('*');
             if (error) throw new Error(error.message);
             return data;
         } else {

@@ -297,7 +297,12 @@ export default function SupplierList() {
                                 >
                                     {supplier.status}
                                 </button>
-                                <span className="text-xs font-medium text-purple-400 cursor-pointer hover:underline">View Details</span>
+                                <button
+                                    onClick={() => handleEdit(supplier)}
+                                    className="text-xs font-medium text-purple-400 cursor-pointer hover:underline bg-transparent border-0 p-0"
+                                >
+                                    View Details
+                                </button>
                             </div>
                         </motion.div>
                     ))}

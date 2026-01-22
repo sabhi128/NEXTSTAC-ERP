@@ -79,12 +79,19 @@ export default function BillModal({ isOpen, onClose, onSubmit }) {
                                     <select
                                         required
                                         className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 text-white transition-all font-medium appearance-none"
-                                        value={formData.vendor}
-                                        onChange={e => setFormData({ ...formData, vendor: e.target.value })}
+                                        value={formData.vendorId || ''}
+                                        onChange={e => {
+                                            const selectedVendor = vendors.find(v => v.id === e.target.value);
+                                            setFormData({
+                                                ...formData,
+                                                vendorId: e.target.value,
+                                                vendor: selectedVendor?.companyName || ''
+                                            });
+                                        }}
                                     >
                                         <option value="">Select Vendor</option>
                                         {vendors?.map(v => (
-                                            <option key={v.id} value={v.companyName}>{v.companyName}</option>
+                                            <option key={v.id} value={v.id}>{v.companyName}</option>
                                         ))}
                                     </select>
                                 </div>

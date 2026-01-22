@@ -140,11 +140,20 @@ export const getBills = async (req, res) => {
 };
 
 export const createBill = async (req, res) => {
-    const { vendor, date, dueDate, amount, status } = req.body;
+    const { vendor, vendorId, billNumber, date, dueDate, amount, status } = req.body;
     const id = uuidv4();
-    const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+    // Use provided billNumber or fallback (though frontend sends it)
+    const finalBillNumber = billNumber || `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+
     const newBill = {
-        id, billNumber, vendor, date, dueDate, amount, status: status || 'Pending'
+        id,
+        billNumber: finalBillNumber,
+        vendor,
+        vendorId, // Pass the ID for DB relation
+        date,
+        dueDate,
+        amount,
+        status: status || 'Pending'
     };
 
     try {

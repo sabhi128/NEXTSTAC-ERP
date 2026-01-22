@@ -1908,12 +1908,29 @@ dbAdapter.purchasing = {
     // --- Bills ---
     getBills: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('bills').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('bills')
+                .select('*, vendors ( company_name )')
+                .order('created_at', { ascending: false });
+
             if (error) throw new Error(error.message);
-            return data;
+
+            return data.map(b => ({
+                id: b.id,
+                billNumber: b.bill_number,
+                vendor: b.vendors?.company_name || 'Unknown',
+                vendorId: b.vendor_id,
+                date: b.date,
+                dueDate: b.due_date,
+                amount: b.amount,
+                status: b.status
+            }));
         } else {
             return new Promise((resolve, reject) => {
-                db.all(`SELECT id, bill_number as billNumber, vendor, date, due_date as dueDate, amount, status FROM bills ORDER BY created_at DESC`, [], (err, rows) => {
+                db.all(`SELECT b.id, b.bill_number as billNumber, v.company_name as vendor, b.vendor_id as vendorId, b.date, b.due_date as dueDate, b.amount, b.status 
+                        FROM bills b 
+                        LEFT JOIN vendors v ON b.vendor_id = v.id 
+                        ORDER BY b.created_at DESC`, [], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
                 });
@@ -1925,7 +1942,7 @@ dbAdapter.purchasing = {
             const payload = {
                 id: bill.id,
                 bill_number: bill.billNumber,
-                vendor: bill.vendor,
+                vendor_id: bill.vendorId, // Use vendor_id
                 date: bill.date,
                 due_date: bill.dueDate,
                 amount: bill.amount,
@@ -1936,8 +1953,8 @@ dbAdapter.purchasing = {
             return bill;
         } else {
             return new Promise((resolve, reject) => {
-                const sql = `INSERT INTO bills (id, bill_number, vendor, date, due_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                db.run(sql, [bill.id, bill.billNumber, bill.vendor, bill.date, bill.dueDate, bill.amount, bill.status], function (err) {
+                const sql = `INSERT INTO bills (id, bill_number, vendor_id, date, due_date, amount, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                db.run(sql, [bill.id, bill.billNumber, bill.vendorId, bill.date, bill.dueDate, bill.amount, bill.status], function (err) {
                     if (err) reject(err);
                     else resolve(bill);
                 });

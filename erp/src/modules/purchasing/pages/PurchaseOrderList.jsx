@@ -148,15 +148,26 @@ export default function PurchaseOrderList() {
                     <h2 className="text-2xl font-bold text-white tracking-tight">Purchase Orders</h2>
                     <p className="text-slate-400">Track procurement and requisitions</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsFormOpen(true)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-purple-500/25 flex items-center gap-2 font-bold transition-all"
-                >
-                    <Plus className="w-5 h-5" />
-                    Create PO
-                </motion.button>
+                <div className="flex gap-4">
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setDeleteConfirm({ isOpen: true, id: null, isDeleteAll: true })}
+                        className="px-5 py-2.5 bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-xl border border-slate-700 hover:border-red-500/20 flex items-center gap-2 font-bold transition-all"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                        Delete All
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setIsFormOpen(true)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-purple-500/25 flex items-center gap-2 font-bold transition-all"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Create PO
+                    </motion.button>
+                </div>
             </div>
 
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl sticky top-20 z-30 shadow-xl">

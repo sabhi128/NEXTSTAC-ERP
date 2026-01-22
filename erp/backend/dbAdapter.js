@@ -1,7 +1,7 @@
 import db from './db.js';
 import { supabaseAdmin as supabase } from './supabaseClient.js';
 
-const isVercel = process.env.VERCEL === '1';
+const isVercel = process.env.VERCEL === '1' || (!!process.env.VITE_SUPABASE_URL && process.env.NODE_ENV === 'production');
 
 const dbAdapter = {
     // --- User Operations ---

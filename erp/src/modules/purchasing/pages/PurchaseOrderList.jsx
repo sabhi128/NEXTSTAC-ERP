@@ -57,6 +57,11 @@ export default function PurchaseOrderList() {
             queryClient.invalidateQueries(['purchaseOrders']);
             setIsFormOpen(false);
             setEditingPO(null);
+            showToast('Order updated successfully', 'success');
+        },
+        onError: (error) => {
+            console.error("Update Failed:", error);
+            showToast(`Failed to update order: ${error.message}`, 'error');
         }
     });
 
@@ -84,7 +89,7 @@ export default function PurchaseOrderList() {
             const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
             updateMutation.mutate({ id: po.id, data: { status: nextStatus } });
         } else if (po.status === 'Cancelled') {
-            updateStatusMutation.mutate({ id: po.id, status: 'Draft' });
+            updateMutation.mutate({ id: po.id, data: { status: 'Draft' } });
         }
     };
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '../../../context/ToastContext';
 // import { mockDataService } from '../../../services/mockDataService';
 import {
     Building2,
@@ -22,6 +23,7 @@ import ConfirmationModal from '../../../components/ConfirmationModal';
 import { api } from '../../../lib/api';
 
 export default function SupplierList() {
+    const { showToast } = useToast();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -39,6 +41,11 @@ export default function SupplierList() {
             queryClient.invalidateQueries(['vendors']);
             setIsFormOpen(false);
             setEditingSupplier(null);
+            showToast('Vendor added successfully', 'success');
+        },
+        onError: (error) => {
+            console.error("Failed to add vendor:", error);
+            showToast(error.message || 'Failed to add vendor', 'error');
         }
     });
 
@@ -48,6 +55,11 @@ export default function SupplierList() {
             queryClient.invalidateQueries(['vendors']);
             setIsFormOpen(false);
             setEditingSupplier(null);
+            showToast('Vendor updated successfully', 'success');
+        },
+        onError: (error) => {
+            console.error("Failed to update vendor:", error);
+            showToast(error.message || 'Failed to update vendor', 'error');
         }
     });
 

@@ -1696,12 +1696,17 @@ dbAdapter.crm = {
 dbAdapter.purchasing = {
     getVendors: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('vendors').select('*');
+            const { data, error } = await supabase
+                .from('vendors')
+                .select('*')
+                .neq('status', 'Deleted')
+                .order('created_at', { ascending: false });
+
             if (error) throw new Error(error.message);
             return data;
         } else {
             return new Promise((resolve, reject) => {
-                db.all(`SELECT id, company_name as companyName, contact_person as contactPerson, email, phone, address, rating, status FROM vendors ORDER BY created_at DESC`, [], (err, rows) => {
+                db.all(`SELECT id, company_name as companyName, contact_person as contactPerson, email, phone, address, rating, status FROM vendors WHERE status != 'Deleted' ORDER BY created_at DESC`, [], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
                 });
@@ -1764,12 +1769,13 @@ dbAdapter.purchasing = {
     },
     deleteVendor: async (id) => {
         if (isVercel) {
-            const { error } = await supabase.from('vendors').delete().eq('id', id);
+            // Soft Delete: Mark as 'Deleted' to preserve FKs and history
+            const { error } = await supabase.from('vendors').update({ status: 'Deleted' }).eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
             return new Promise((resolve, reject) => {
-                db.run("DELETE FROM vendors WHERE id = ?", [id], (err) => {
+                db.run("UPDATE vendors SET status = 'Deleted' WHERE id = ?", [id], (err) => {
                     if (err) reject(err);
                     else resolve(true);
                 });

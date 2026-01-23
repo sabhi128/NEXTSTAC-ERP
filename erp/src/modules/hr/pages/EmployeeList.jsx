@@ -229,7 +229,7 @@ export default function EmployeeList() {
                                 <List className="w-5 h-5" />
                             </button>
                         </div>
-                        {user?.role === 'super_admin' && (
+                        {(user?.role === 'super_admin' || user?.role?.includes('admin')) && (
                             <Button
                                 variant="destructive"
                                 onClick={() => setDeleteAllModal(true)}

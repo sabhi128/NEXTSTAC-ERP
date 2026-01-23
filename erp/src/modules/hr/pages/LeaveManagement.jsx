@@ -204,7 +204,7 @@ export default function LeaveManagement() {
             {/* ... (Start of table structure unchanged) ... */}
 
             <div className="flex justify-end pb-4">
-                {user?.role !== 'user' && (
+                {(user?.role !== 'user' && (user?.role === 'super_admin' || user?.role?.includes('admin'))) && (
                     <Button
                         variant="destructive"
                         onClick={() => setDeleteAllModal(true)}

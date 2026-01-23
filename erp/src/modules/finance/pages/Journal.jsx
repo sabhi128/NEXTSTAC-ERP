@@ -50,9 +50,12 @@ export default function Journal() {
             // Delete both mock data and real backend data
             mockDataService.deleteAllTransactions();
             try {
-                await api.delete('/finance/transactions/all');
+                const res = await api.delete('/finance/transactions/all');
+                if (res.error) throw new Error(res.error);
+                return true;
             } catch (e) {
-                console.warn('Failed to delete backend transactions', e);
+                console.error('Failed to delete backend transactions:', e);
+                throw e; // Throw so the mutation fails and UI can reflect it if we want
             }
             return true;
         },
@@ -60,6 +63,10 @@ export default function Journal() {
             queryClient.invalidateQueries(['transactions']);
             // Invalidate dashboard queries too if possible, or just transactions which Dashboard uses
             setDeleteModalOpen(false);
+        },
+        onError: (error) => {
+            console.error("Delete All failed:", error);
+            alert("Failed to delete entries: " + (error.message || "Unknown error"));
         }
     });
 

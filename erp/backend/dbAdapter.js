@@ -1219,7 +1219,8 @@ dbAdapter.finance = {
 
     deleteAllTransactions: async () => {
         if (isVercel) {
-            const { error } = await supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
             if (error) throw new Error(error.message);
             return true;
         } else {

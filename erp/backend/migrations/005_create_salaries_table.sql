@@ -1,7 +1,10 @@
+-- Drop table if exists to ensure schema update
+DROP TABLE IF EXISTS salaries;
+
 -- Create salaries table
-CREATE TABLE IF NOT EXISTS salaries (
+CREATE TABLE salaries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    employee_id UUID REFERENCES employees(id) ON DELETE CASCADE,
+    employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
     employee_name TEXT NOT NULL,
     amount NUMERIC NOT NULL,
     payment_date DATE NOT NULL,

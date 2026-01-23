@@ -108,7 +108,57 @@ export default function PayrollList() {
     };
 
     const handleDownload = (record) => {
-        showToast(`Downloading payslip for ${record.employeeName}...`, 'success');
+        import('jspdf').then(jsPDF => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default();
+
+                // Company Header
+                doc.setFontSize(22);
+                doc.setTextColor(44, 62, 80);
+                doc.text('NEXTSTAC ERP', 105, 20, { align: 'center' });
+
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text('Payslip for ' + new Date(record.paymentDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }), 105, 30, { align: 'center' });
+
+                // Employee Details
+                doc.setFontSize(10);
+                doc.setTextColor(0);
+                const startY = 45;
+                doc.text(`Employee Name: ${record.employeeName}`, 14, startY);
+                doc.text(`Employee ID: ${record.employeeId.slice(0, 8)}...`, 14, startY + 7);
+                doc.text(`Payment Date: ${new Date(record.paymentDate).toLocaleDateString()}`, 14, startY + 14);
+                doc.text(`Payment Method: ${record.method}`, 14, startY + 21);
+                doc.text(`Status: ${record.status}`, 14, startY + 28);
+
+                // Deduced Amount (Mock breakdown)
+                const baseSalary = record.amount;
+                const tax = baseSalary * 0.05; // 5% Mock Tax
+                const netPay = baseSalary - tax;
+
+                doc.autoTable({
+                    startY: startY + 40,
+                    head: [['Description', 'Amount']],
+                    body: [
+                        ['Basic Salary', `$${baseSalary.toLocaleString()}`],
+                        ['Tax (5%)', `-$${tax.toLocaleString()}`],
+                        ['Other Deductions', '$0.00'],
+                        [{ content: 'Net Pay', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, { content: `$${netPay.toLocaleString()}`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
+                    ],
+                    theme: 'grid',
+                    headStyles: { fillColor: [79, 70, 229] }, // Indigo
+                });
+
+                // Footer
+                const finalY = doc.lastAutoTable.finalY || 150;
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text('This is a system generated payslip.', 105, finalY + 20, { align: 'center' });
+
+                doc.save(`Payslip_${record.employeeName.replace(/\s+/g, '_')}_${record.paymentDate}.pdf`);
+                showToast('Payslip downloaded successfully', 'success');
+            });
+        });
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-400">Loading payroll data...</div>;

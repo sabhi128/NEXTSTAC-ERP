@@ -1,5 +1,10 @@
 import db from './db.js';
-import { supabaseAdmin as supabase } from './supabaseClient.js';
+import db from './db.js';
+import supabaseAnon, { supabaseAdmin } from './supabaseClient.js';
+
+// Fallback to Anon client if Admin (Service Role) is missing.
+// Note: Anon client is subject to RLS and might fail if policies don't allow access.
+const supabase = supabaseAdmin || supabaseAnon;
 
 const isVercel = process.env.VERCEL === '1' || (!!process.env.VITE_SUPABASE_URL && process.env.NODE_ENV === 'production');
 

@@ -160,13 +160,22 @@ export default function AttendanceLog() {
                     <p className="text-slate-400">Monitor and manage employee attendance.</p>
                 </div>
                 {(user?.role === 'super_admin' || user?.role?.includes('admin')) && (
-                    <button
-                        onClick={() => setDeleteAllModal(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                        Delete All
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={handleManualEntry}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
+                        >
+                            <Clock className="w-4 h-4" />
+                            Manual Entry
+                        </button>
+                        <button
+                            onClick={() => setDeleteAllModal(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete All
+                        </button>
+                    </div>
                 )}
             </div>
             {/* ... (rest of the component structure is unchanged, just updating table rows below) ... */}

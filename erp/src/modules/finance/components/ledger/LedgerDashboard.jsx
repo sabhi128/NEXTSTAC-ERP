@@ -2,7 +2,44 @@ import React from 'react';
 import { CreditCard, Wallet, Building2, Coins, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const LedgerDashboard = ({ onAccountClick, accounts }) => {
+const LedgerDashboard = ({ onAccountClick, accounts, transactions = [] }) => {
+
+    // Helper to calculate balance for an account
+    const getAccountBalance = (account) => {
+        const accountTxs = transactions.filter(t => {
+            if (t.account_id && String(t.account_id) === String(account.id)) return true;
+            if (!t.account_id && t.category === account.name) return true;
+            // legacy mock check
+            if (t.debit_account_id && String(t.debit_account_id) === String(account.id)) return true;
+            if (t.credit_account_id && String(t.credit_account_id) === String(account.id)) return true;
+            return false;
+        });
+
+        let balance = 0;
+        // Include initial balance if available ? Usually 0 for now.
+        // If we had openingBalance in account table, we'd add it.
+
+        accountTxs.forEach(t => {
+            let isDebit = false;
+            if (t.direction) {
+                isDebit = t.direction === 'Debit';
+            } else if (t.debit_account_id || t.credit_account_id) {
+                isDebit = String(t.debit_account_id) === String(account.id);
+            } else {
+                isDebit = (account.normal_balance || account.normalBalance) === 'Debit';
+            }
+
+            const amount = parseFloat(t.amount || 0);
+            if ((account.normal_balance || account.normalBalance) === 'Debit') {
+                balance += isDebit ? amount : -amount;
+            } else {
+                balance += isDebit ? -amount : amount;
+            }
+        });
+
+        return balance;
+    };
+
 
     // Group accounts
     const accountGroups = {
@@ -99,35 +136,42 @@ const LedgerDashboard = ({ onAccountClick, accounts }) => {
 
                         {/* Card Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {groupAccounts.map(account => (
-                                <div
-                                    key={account.id}
-                                    className={`bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-lg hover:shadow-xl hover:bg-slate-800/60 transition-all relative group cursor-pointer hover:border-slate-600`}
-                                    onClick={() => onAccountClick(account)}
-                                >
-                                    {/* Debit/Credit Indicator */}
-                                    <div className={`absolute top-6 right-6 text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-lg ${config.badgeBg} ${config.badgeColor} border border-transparent group-hover:border-current/10 transition-colors`}>
-                                        {config.badgeText}
-                                    </div>
+                            {groupAccounts.map(account => {
+                                const balance = getAccountBalance(account);
 
-                                    {/* Icon */}
-                                    <div className={`mb-4 w-12 h-12 rounded-xl flex items-center justify-center ${config.iconBg} ${config.text} group-hover:scale-110 transition-transform duration-300`}>
-                                        <Icon className="w-6 h-6 stroke-2" />
-                                    </div>
+                                return (
+                                    <div
+                                        key={account.id}
+                                        className={`bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-lg hover:shadow-xl hover:bg-slate-800/60 transition-all relative group cursor-pointer hover:border-slate-600`}
+                                        onClick={() => onAccountClick(account)}
+                                    >
+                                        {/* Debit/Credit Indicator */}
+                                        <div className={`absolute top-6 right-6 text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-lg ${config.badgeBg} ${config.badgeColor} border border-transparent group-hover:border-current/10 transition-colors`}>
+                                            {config.badgeText}
+                                        </div>
 
-                                    {/* Content */}
-                                    <div className="mb-6">
-                                        <h4 className="font-bold text-white text-lg mb-1 line-clamp-2 h-[3.5rem] leading-7" title={account.name}>{account.name}</h4>
-                                        <p className="text-xs text-slate-500 font-mono">ID: #{account.id.substring(0, 8)}</p>
-                                    </div>
+                                        {/* Icon */}
+                                        <div className={`mb-4 w-12 h-12 rounded-xl flex items-center justify-center ${config.iconBg} ${config.text} group-hover:scale-110 transition-transform duration-300`}>
+                                            <Icon className="w-6 h-6 stroke-2" />
+                                        </div>
 
-                                    {/* Footer Link */}
-                                    <div className="pt-4 border-t border-slate-700/50 flex items-center justify-between">
-                                        <span className="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">View Ledger</span>
-                                        <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                                        {/* Content */}
+                                        <div className="mb-6">
+                                            <h4 className="font-bold text-white text-lg mb-1 line-clamp-2 h-[3.5rem] leading-7" title={account.name}>{account.name}</h4>
+                                            <p className="text-xs text-slate-500 font-mono mb-2">ID: #{account.id.substring(0, 8)}</p>
+                                            <p className="font-mono text-2xl font-bold text-slate-200 tracking-tight">
+                                                {balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                                            </p>
+                                        </div>
+
+                                        {/* Footer Link */}
+                                        <div className="pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                                            <span className="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">View Ledger</span>
+                                            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </div>
                 );

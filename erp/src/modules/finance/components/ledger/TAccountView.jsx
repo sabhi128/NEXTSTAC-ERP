@@ -3,18 +3,36 @@ import { ArrowLeft, ArrowRight, TrendingUp, X } from 'lucide-react';
 
 const TAccountView = ({ account, transactions, onClose }) => {
     // Filter transactions for this account
-    const accountTransactions = transactions.filter(t =>
-        // Allow fallback to direct object access for mock data robustness
-        String(t.debit_account_id) === String(account.id) ||
-        String(t.credit_account_id) === String(account.id) ||
-        String(t.debitAccount?.id) === String(account.id) ||
-        String(t.creditAccount?.id) === String(account.id)
-    ).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const accountTransactions = transactions.filter(t => {
+        // 1. Strict Match (New Data)
+        if (t.account_id && String(t.account_id) === String(account.id)) return true;
+
+        // 2. Name Match (Legacy/Fallback)
+        if (!t.account_id && t.category === account.name) return true;
+
+        // 3. Mock Data Structure Fallback
+        if (t.debit_account_id && String(t.debit_account_id) === String(account.id)) return true;
+        if (t.credit_account_id && String(t.credit_account_id) === String(account.id)) return true;
+
+        return false;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     // Calculate running balance
     let runningBalance = 0;
     const transactionsWithBalance = accountTransactions.map(t => {
-        const isDebit = String(t.debit_account_id) === String(account.id) || String(t.debitAccount?.id) === String(account.id);
+        // Determine Direction
+        let isDebit = false;
+
+        if (t.direction) {
+            isDebit = t.direction === 'Debit';
+        } else if (t.debit_account_id || t.credit_account_id) {
+            // Mock data structure
+            isDebit = String(t.debit_account_id) === String(account.id);
+        } else {
+            // Legacy/Name match fallback: Assume it's an increase (Normal Balance)
+            isDebit = (account.normal_balance || account.normalBalance) === 'Debit';
+        }
+
         const amount = parseFloat(t.amount);
 
         if (account.normal_balance === 'Debit' || account.normalBalance === 'Debit') {
@@ -26,12 +44,12 @@ const TAccountView = ({ account, transactions, onClose }) => {
         return { ...t, isDebit, runningBalance };
     });
 
-    const totalDebits = accountTransactions
-        .filter(t => String(t.debit_account_id) === String(account.id) || String(t.debitAccount?.id) === String(account.id))
+    const totalDebits = transactionsWithBalance
+        .filter(t => t.isDebit)
         .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-    const totalCredits = accountTransactions
-        .filter(t => String(t.credit_account_id) === String(account.id) || String(t.creditAccount?.id) === String(account.id))
+    const totalCredits = transactionsWithBalance
+        .filter(t => !t.isDebit)
         .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
     const endingBalance = Math.abs(totalDebits - totalCredits);

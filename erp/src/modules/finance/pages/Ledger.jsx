@@ -11,17 +11,36 @@ import { X } from 'lucide-react';
 export default function Ledger() {
     const [selectedAccount, setSelectedAccount] = useState(null);
 
-    const { data: accounts, isLoading: accountsLoading } = useQuery({
+    const { data: accounts, isLoading: accountsLoading, isError: accountsError, error: accError } = useQuery({
         queryKey: ['accounts'],
         queryFn: () => api.get('/finance/accounts').then(res => res.data),
+        retry: 2,
+        staleTime: 5000
     });
 
-    const { data: transactions, isLoading: transactionsLoading } = useQuery({
+    const { data: transactions, isLoading: transactionsLoading, isError: transactionsError, error: txError } = useQuery({
         queryKey: ['transactions'],
         queryFn: () => api.get('/finance/transactions').then(res => res.data),
+        retry: 2,
+        staleTime: 5000
     });
 
     if (accountsLoading || transactionsLoading) return <div className="p-8 text-center text-slate-500">Loading Ledger...</div>;
+
+    if (accountsError || transactionsError) {
+        return (
+            <div className="p-8 text-center text-red-400 bg-red-500/10 rounded-xl m-8 border border-red-500/20">
+                <h3 className="font-bold text-lg mb-2">Error Loading Ledger</h3>
+                <p>{accError?.message || txError?.message || "Failed to load data. Please refresh."}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold transition-colors"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen pb-20">

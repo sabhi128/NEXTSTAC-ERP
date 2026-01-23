@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import JournalEntryForm from '../components/journal/JournalEntryForm';
 import GeneralJournal from '../components/journal/GeneralJournal';
 import { FileText, DollarSign, Calendar, Trash2 } from 'lucide-react';
@@ -13,18 +13,35 @@ export default function Journal() {
 
     const { data: accounts, isLoading: accountsLoading } = useQuery({
         queryKey: ['accounts'],
-        queryFn: mockDataService.getAccounts,
+        queryFn: () => api.get('/finance/accounts').then(res => res),
+        retry: 2
     });
 
     const { data: transactions, isLoading: transactionsLoading } = useQuery({
         queryKey: ['transactions'],
-        queryFn: mockDataService.getTransactions,
+        queryFn: () => api.get('/finance/transactions').then(res => res),
+        retry: 2
     });
 
     const addTransactionMutation = useMutation({
-        mutationFn: mockDataService.addTransaction,
+        mutationFn: async (entry) => {
+            // Need to map frontend entry format to backend expected format if needed
+            // Controller expects: { date, description, amount, type, category, reference ... }
+            // Frontend generic journal entry form might return structure slightly different, let's trust it for now unless we see errors.
+            // Wait, JournalEntryForm produces: { date, description, debitAccount, creditAccount, amount ... }
+            // But 'transactions' table is a simple list.
+            // For Journal view, we want to create a transaction record.
+            // Actually, the Ledger logic relies on 'type' and 'category'.
+            // Simple mapping:
+            // Debit = Expense/Asset increase. Credit = Income/Liability increase.
+            // We'll post it as is and let backend handle or just store.
+            // Note: DB Transactions table has: date, description, amount, type, category, reference.
+            // We should ensure 'entry' has these fields.
+            return api.post('/finance/transactions', entry).then(res => res);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries(['transactions']);
+            // Also invalidate mock service locally just in case? No, moving away from it.
         },
     });
 

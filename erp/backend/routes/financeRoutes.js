@@ -17,6 +17,7 @@ router.get('/accounts', financeController.getAccounts);
 
 // Transactions
 router.get('/transactions', financeController.getTransactions);
+router.post('/transactions', financeController.createTransaction);
 router.delete('/transactions/all', financeController.deleteAllTransactions);
 
 // Invoices

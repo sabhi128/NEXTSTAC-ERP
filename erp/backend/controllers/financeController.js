@@ -131,6 +131,50 @@ export const getTransactions = async (req, res) => {
     }
 };
 
+export const createTransaction = async (req, res) => {
+    try {
+        const { date, description, amount, debitAccount, creditAccount } = req.body;
+
+        // Create Double Entry Records
+        // 1. Debit Side
+        const debitRecord = {
+            id: uuidv4(),
+            date: date,
+            description: description,
+            amount: parseFloat(amount),
+            type: debitAccount?.type || 'Expense', // e.g. 'Expense', 'Asset'
+            category: debitAccount?.name || 'Uncategorized',
+            reference: `JE-${Date.now()}` // Same reference links them
+        };
+
+        // 2. Credit Side (for T-Accounts, we usually just store positive numbers and let type define side)
+        // However, if we want them to balance zero in a single list, one might be negative.
+        // But for this simple ERP, usually we just list "Transactions" that happened.
+        // If I store BOTH, the "Total Value" might double?
+        // Let's look at Journal Page "Total Entries". Use of "Double Entry" usually implies 2 rows.
+        // But if the user just wants to see "I spent $50", showing 2 rows might be confusing unless grouped.
+        // The Journal Entry Form implies a proper accounting entry.
+        // Let's store BOTH.
+
+        const creditRecord = {
+            id: uuidv4(),
+            date: date,
+            description: description, // or "Credit: " + description
+            amount: parseFloat(amount), // Keep positive, type determines direction in reporting
+            type: creditAccount?.type || 'Income', // e.g. 'Revenue', 'Liability'
+            category: creditAccount?.name || 'Uncategorized',
+            reference: debitRecord.reference
+        };
+
+        await dbAdapter.finance.createTransactions([debitRecord, creditRecord]);
+        res.status(201).json({ success: true, reference: debitRecord.reference });
+
+    } catch (err) {
+        console.error('Create Transaction Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const deleteAllTransactions = async (req, res) => {
     try {
         await dbAdapter.finance.deleteAllTransactions();

@@ -497,8 +497,9 @@ dbAdapter.hr = {
     deleteAllEmployees: async () => {
         if (isVercel) {
             if (!supabase) throw new Error('Supabase client not initialized');
+            const client = supabaseAdmin || supabase;
             // Delete all by matching a condition that is always true
-            const { error } = await supabase.from('employees').delete().gte('created_at', '1900-01-01');
+            const { error } = await client.from('employees').delete().gte('created_at', '1900-01-01');
             if (error) throw new Error(error.message);
             return { success: true };
         } else {
@@ -595,7 +596,8 @@ dbAdapter.hr = {
 
     deleteAllLeaves: async () => {
         if (isVercel) {
-            const { error } = await supabase.from('leaves').delete().gte('created_at', '1900-01-01');
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('leaves').delete().gte('created_at', '1900-01-01');
             if (error) throw new Error(error.message);
             return { success: true };
         } else {
@@ -703,7 +705,8 @@ dbAdapter.hr = {
 
     deleteAllAttendance: async () => {
         if (isVercel) {
-            const { error } = await supabase.from('attendance').delete().gte('created_at', '1900-01-01');
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('attendance').delete().gte('created_at', '1900-01-01');
             if (error) throw new Error(error.message);
             return { success: true };
         } else {

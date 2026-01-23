@@ -99,7 +99,10 @@ export default function EmployeeList() {
 
     const deleteAllMutation = useMutation({
         mutationFn: async () => {
-            return await mockDataService.deleteAllEmployees();
+            // return await mockDataService.deleteAllEmployees();
+            // Use real API
+            const { api } = await import('../../../lib/api');
+            return await api.delete('/hr/employees/all');
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['employees']);

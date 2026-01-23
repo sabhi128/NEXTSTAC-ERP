@@ -23,6 +23,11 @@ export default function PayrollList() {
         queryFn: () => api.get('/hr/salaries'),
     });
 
+    const { data: employees } = useQuery({
+        queryKey: ['employees'],
+        queryFn: () => api.get('/hr/employees'),
+    });
+
     const [searchTerm, setSearchTerm] = useState('');
     const [periodFilter, setPeriodFilter] = useState('Monthly'); // Weekly, Monthly, Yearly
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,8 +82,8 @@ export default function PayrollList() {
         setIsModalOpen(true);
     };
 
-    const handleConfirmRun = (period) => {
-        processPayrollMutation.mutate(period);
+    const handleConfirmRun = async (period) => {
+        await processPayrollMutation.mutateAsync(period);
     };
 
     const deleteAllMutation = useMutation({
@@ -263,8 +268,7 @@ export default function PayrollList() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onRunPayroll={handleConfirmRun}
-                totalEmployees={15} // Using static count or could fetch from employee query
-
+                totalEmployees={employees?.length || 0}
             />
 
             <ConfirmationModal

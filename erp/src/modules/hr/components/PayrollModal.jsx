@@ -8,13 +8,15 @@ export default function PayrollModal({ isOpen, onClose, onRunPayroll, totalEmplo
 
     if (!isOpen) return null;
 
-    const handleRun = () => {
+    const handleRun = async () => {
         setStep('processing');
-        // Simulate processing time
-        setTimeout(() => {
-            onRunPayroll(selectedMonth);
+        try {
+            await onRunPayroll(selectedMonth);
             setStep('success');
-        }, 2000);
+        } catch (error) {
+            console.error(error);
+            setStep('summary');
+        }
     };
 
     const handleClose = () => {

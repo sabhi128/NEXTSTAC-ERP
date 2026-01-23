@@ -14,6 +14,8 @@ import { subDays, isAfter } from 'date-fns';
 import { useToast } from '../../../context/ToastContext';
 import { Trash2 } from 'lucide-react';
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function PayrollList() {
     const queryClient = useQueryClient();

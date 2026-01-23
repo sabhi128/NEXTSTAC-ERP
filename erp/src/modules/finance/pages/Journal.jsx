@@ -47,8 +47,7 @@ export default function Journal() {
 
     const deleteAllMutation = useMutation({
         mutationFn: async () => {
-            // Delete both mock data and real backend data
-            mockDataService.deleteAllTransactions();
+            // Delete real backend data only
             try {
                 const res = await api.delete('/finance/transactions/all');
                 if (res.error) throw new Error(res.error);

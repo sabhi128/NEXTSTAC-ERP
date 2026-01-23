@@ -17,27 +17,57 @@ export const getAccounts = async (req, res) => {
     try {
         let accounts = await dbAdapter.finance.getAccounts();
 
-        // Auto-seed if empty
-        if (!accounts || accounts.length === 0) {
+        // Use hardcoded defaults to avoid file dependency issues
+        const defaultAccounts = [
+            // Assets
+            { id: 'cash', name: 'Cash on Hand', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Physical cash' },
+            { id: 'bank', name: 'Bank Account', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Business bank account' },
+            { id: 'accounts-receivable', name: 'Accounts Receivable', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Money owed by customers' },
+            { id: 'inventory', name: 'Inventory', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Stock of goods' },
+            { id: 'furniture', name: 'Furniture & Fixtures', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Office furniture' },
+            { id: 'office-equipment', name: 'Office Equipment', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Computers and equipment' },
+            { id: 'vehicles', name: 'Vehicles', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Company vehicles' },
+            { id: 'building', name: 'Building & Land', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Real estate' },
+
+            // Liabilities
+            { id: 'accounts-payable', name: 'Accounts Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Money owed to suppliers' },
+            { id: 'salaries-payable', name: 'Salaries Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Unpaid wages' },
+            { id: 'tax-payable', name: 'Tax Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Taxes owed' },
+            { id: 'utilities-payable', name: 'Utilities Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Unpaid bills' },
+            { id: 'bank-loan', name: 'Bank Loan (Long Term)', type: 'Liability', category: 'Non-Current Liability', normalBalance: 'Credit', description: 'Long term debt' },
+
+            // Equity
+            { id: 'owners-capital', name: 'Owners Capital', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Owner investment' },
+            { id: 'drawings', name: 'Drawings', type: 'Equity', category: 'Equity', normalBalance: 'Debit', description: 'Owner withdrawals' },
+            { id: 'retained-earnings', name: 'Retained Earnings', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Retained profits' },
+
+            // Revenue
+            { id: 'sales-revenue', name: 'Sales Revenue', type: 'Revenue', category: 'Operating Revenue', normalBalance: 'Credit', description: 'Income from sales' },
+            { id: 'service-revenue', name: 'Service Revenue', type: 'Revenue', category: 'Operating Revenue', normalBalance: 'Credit', description: 'Income from services' },
+            { id: 'interest-income', name: 'Interest Income', type: 'Revenue', category: 'Non-Operating Revenue', normalBalance: 'Credit', description: 'Interest earnings' },
+
+            // Expenses
+            { id: 'cost-of-goods-sold', name: 'Cost of Goods Sold', type: 'Expense', category: 'Direct Expense', normalBalance: 'Debit', description: 'Cost of goods sold' },
+            { id: 'rent-expense', name: 'Rent Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Office rent' },
+            { id: 'salary-expense', name: 'Salary Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Employee salaries' },
+            { id: 'utilities-expense', name: 'Utilities Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Utility bills' },
+            { id: 'marketing-expense', name: 'Marketing Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Ads and promo' },
+            { id: 'purchases', name: 'Purchases', type: 'Expense', category: 'Direct Expense', normalBalance: 'Debit', description: 'Goods for resale' },
+            { id: 'office-supplies', name: 'Office Supplies', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Supplies' }
+        ];
+
+        // Re-seed if we are missing accounts (simple check on count)
+        if (!accounts || accounts.length < 5) { // Force seed if very low, e.g. previous partial seed or empty
             console.log('Seeding default accounts...');
-            // const { chartOfAccounts } = await import('../data/chartOfAccounts_backend.js'); 
-            // Use hardcoded defaults to avoid file dependency issues
-            const defaultAccounts = [
-                { id: 'cash', name: 'Cash on Hand', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Physical cash' },
-                { id: 'bank', name: 'Bank Account', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Business bank account' },
-                { id: 'accounts-receivable', name: 'Accounts Receivable', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Money owed by customers' },
-                { id: 'inventory', name: 'Inventory', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Stock of goods' },
-                { id: 'furniture', name: 'Furniture', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Office furniture' },
-                { id: 'accounts-payable', name: 'Accounts Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Money owed to suppliers' },
-                { id: 'sales-revenue', name: 'Sales Revenue', type: 'Revenue', category: 'Operating Revenue', normalBalance: 'Credit', description: 'Income from sales' },
-                { id: 'cost-of-goods-sold', name: 'Cost of Goods Sold', type: 'Expense', category: 'Direct Expense', normalBalance: 'Debit', description: 'Cost of goods sold' },
-                { id: 'rent-expense', name: 'Rent Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Office rent' },
-                { id: 'salary-expense', name: 'Salary Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Employee salaries' },
-                { id: 'owners-capital', name: 'Owners Capital', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Owner investment' },
-                { id: 'retained-earnings', name: 'Retained Earnings', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Retained profits' }
-            ];
             await dbAdapter.finance.seedAccounts(defaultAccounts);
-            accounts = defaultAccounts;
+            // Reload accounts
+            accounts = await dbAdapter.finance.getAccounts();
+        } else if (accounts.length < defaultAccounts.length) {
+            // Upsert missing ones without deleting existing
+            // Note: seedAccounts in dbAdapter(Vercel) uses Upsert, so safe to run.
+            console.log('Syncing missing default accounts...');
+            await dbAdapter.finance.seedAccounts(defaultAccounts);
+            accounts = await dbAdapter.finance.getAccounts();
         }
 
         res.json(accounts);

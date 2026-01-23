@@ -137,15 +137,15 @@ export default function PayrollList() {
 
             // Deduced Amount (Mock breakdown)
             const baseSalary = record.amount;
-            const tax = baseSalary * 0.05; // 5% Mock Tax
-            const netPay = baseSalary - tax;
+            const tax = 0; // No Tax
+            const netPay = baseSalary;
 
             doc.autoTable({
                 startY: startY + 40,
                 head: [['Description', 'Amount']],
                 body: [
                     ['Basic Salary', `$${baseSalary.toLocaleString()}`],
-                    ['Tax (5%)', `-$${tax.toLocaleString()}`],
+                    ['Tax (0%)', `$0.00`],
                     ['Other Deductions', '$0.00'],
                     [{ content: 'Net Pay', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, { content: `$${netPay.toLocaleString()}`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
                 ],

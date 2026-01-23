@@ -1099,6 +1099,66 @@ dbAdapter.inventory = {
 
 // --- Finance Operations ---
 dbAdapter.finance = {
+    // Accounts
+    getAccounts: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('finance_accounts').select('*').order('name', { ascending: true });
+            if (error) {
+                // Return defaults if table doesn't exist or empty (optional fallback)
+                console.warn('Error fetching finance_accounts, returning defaults:', error.message);
+                return [];
+            }
+            return data.map(a => ({
+                id: a.id,
+                name: a.name,
+                type: a.type,
+                category: a.category,
+                normalBalance: a.normal_balance,
+                description: a.description
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all(`SELECT id, name, type, category, normal_balance as normalBalance, description FROM finance_accounts ORDER BY name ASC`, [], (err, rows) => {
+                    if (err) resolve([]); // Fallback
+                    else resolve(rows);
+                });
+            });
+        }
+    },
+
+    seedAccounts: async (accounts) => {
+        if (isVercel) {
+            // Upsert accounts
+            const payload = accounts.map(a => ({
+                id: a.id,
+                name: a.name,
+                type: a.type,
+                category: a.category,
+                normal_balance: a.normalBalance,
+                description: a.description
+            }));
+            const { error } = await supabase.from('finance_accounts').upsert(payload);
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                const placeholders = accounts.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+                const values = [];
+                accounts.forEach(a => {
+                    values.push(a.id, a.name, a.type, a.category, a.normalBalance, a.description);
+                });
+                // This acts as a simple insert, might need delete all first or conflict handling
+                db.serialize(() => {
+                    db.run("DELETE FROM finance_accounts");
+                    db.run(`INSERT INTO finance_accounts (id, name, type, category, normal_balance, description) VALUES ${placeholders}`, values, (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
+                });
+            });
+        }
+    },
+
     // Transactions
     getTransactions: async () => {
         if (isVercel) {

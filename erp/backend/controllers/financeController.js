@@ -12,6 +12,43 @@ const getValue = (row, ...keys) => {
     return null;
 };
 
+// --- Accounts ---
+export const getAccounts = async (req, res) => {
+    try {
+        let accounts = await dbAdapter.finance.getAccounts();
+
+        // Auto-seed if empty
+        if (!accounts || accounts.length === 0) {
+            console.log('Seeding default accounts...');
+            const { chartOfAccounts } = await import('../data/chartOfAccounts_backend.js');
+            // We need to create this file or just hardcode it here. Hardcoding is safer for now.
+            // Actually, let's just use the frontend one if we can/duplicate it, OR better:
+            // Just return empty and let frontend trigger seed? No, backend should handle it.
+            // Let's define defaults here.
+            const defaultAccounts = [
+                { id: 'cash', name: 'Cash on Hand', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Physical cash' },
+                { id: 'bank', name: 'Bank Account', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Business bank account' },
+                { id: 'accounts-receivable', name: 'Accounts Receivable', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Money owed by customers' },
+                { id: 'inventory', name: 'Inventory', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Stock of goods' },
+                { id: 'furniture', name: 'Furniture', type: 'Asset', category: 'Fixed Asset', normalBalance: 'Debit', description: 'Office furniture' },
+                { id: 'accounts-payable', name: 'Accounts Payable', type: 'Liability', category: 'Current Liability', normalBalance: 'Credit', description: 'Money owed to suppliers' },
+                { id: 'sales-revenue', name: 'Sales Revenue', type: 'Revenue', category: 'Operating Revenue', normalBalance: 'Credit', description: 'Income from sales' },
+                { id: 'cost-of-goods-sold', name: 'Cost of Goods Sold', type: 'Expense', category: 'Direct Expense', normalBalance: 'Debit', description: 'Cost of goods sold' },
+                { id: 'rent-expense', name: 'Rent Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Office rent' },
+                { id: 'salary-expense', name: 'Salary Expense', type: 'Expense', category: 'Operating Expense', normalBalance: 'Debit', description: 'Employee salaries' },
+                { id: 'owners-capital', name: 'Owners Capital', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Owner investment' },
+                { id: 'retained-earnings', name: 'Retained Earnings', type: 'Equity', category: 'Equity', normalBalance: 'Credit', description: 'Retained profits' }
+            ];
+            await dbAdapter.finance.seedAccounts(defaultAccounts);
+            accounts = defaultAccounts;
+        }
+
+        res.json(accounts);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const uploadFinanceData = async (req, res) => {
     try {
         if (!req.file) {

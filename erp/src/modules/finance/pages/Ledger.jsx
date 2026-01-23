@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import LedgerDashboard from '../components/ledger/LedgerDashboard';
 import TAccountView from '../components/ledger/TAccountView';
 import { X } from 'lucide-react';
@@ -12,12 +13,12 @@ export default function Ledger() {
 
     const { data: accounts, isLoading: accountsLoading } = useQuery({
         queryKey: ['accounts'],
-        queryFn: mockDataService.getAccounts,
+        queryFn: () => api.get('/finance/accounts').then(res => res.data),
     });
 
     const { data: transactions, isLoading: transactionsLoading } = useQuery({
         queryKey: ['transactions'],
-        queryFn: mockDataService.getTransactions,
+        queryFn: () => api.get('/finance/transactions').then(res => res.data),
     });
 
     if (accountsLoading || transactionsLoading) return <div className="p-8 text-center text-slate-500">Loading Ledger...</div>;

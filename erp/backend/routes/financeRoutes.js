@@ -12,6 +12,9 @@ router.use(verifySupabaseToken);
 // Upload Excel
 router.post('/upload', upload.single('file'), financeController.uploadFinanceData);
 
+// Accounts
+router.get('/accounts', financeController.getAccounts);
+
 // Transactions
 router.get('/transactions', financeController.getTransactions);
 router.delete('/transactions/all', financeController.deleteAllTransactions);

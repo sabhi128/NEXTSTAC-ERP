@@ -1,5 +1,4 @@
 import db from './db.js';
-import db from './db.js';
 import supabaseAnon, { supabaseAdmin } from './supabaseClient.js';
 
 // Fallback to Anon client if Admin (Service Role) is missing.

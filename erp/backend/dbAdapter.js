@@ -703,6 +703,21 @@ dbAdapter.hr = {
         }
     },
 
+    deleteAttendance: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('attendance').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM attendance WHERE id = ?", [id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    },
+
     deleteAllAttendance: async () => {
         if (isVercel) {
             const client = supabaseAdmin || supabase;
@@ -712,6 +727,114 @@ dbAdapter.hr = {
         } else {
             return new Promise((resolve, reject) => {
                 db.run("DELETE FROM attendance", [], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    },
+
+    // Salaries (Payroll)
+    getSalaries: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('salaries').select('*').order('created_at', { ascending: false });
+            if (error) throw new Error(error.message);
+            return data.map(s => ({
+                id: s.id,
+                employeeId: s.employee_id,
+                employeeName: s.employee_name,
+                amount: s.amount,
+                paymentDate: s.payment_date,
+                status: s.status,
+                method: s.method
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all("SELECT * FROM salaries ORDER BY created_at DESC", [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows.map(s => ({
+                        id: s.id,
+                        employeeId: s.employee_id,
+                        employeeName: s.employee_name,
+                        amount: s.amount,
+                        paymentDate: s.payment_date,
+                        status: s.status,
+                        method: s.method
+                    })));
+                });
+            });
+        }
+    },
+
+    createSalary: async (salary) => {
+        if (isVercel) {
+            const { error } = await supabase.from('salaries').insert([{
+                id: salary.id,
+                employee_id: salary.employeeId,
+                employee_name: salary.employeeName,
+                amount: salary.amount,
+                payment_date: salary.paymentDate,
+                status: salary.status,
+                method: salary.method
+            }]);
+            if (error) throw new Error(error.message);
+            return salary;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("INSERT INTO salaries (id, employee_id, employee_name, amount, payment_date, status, method) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [salary.id, salary.employeeId, salary.employeeName, salary.amount, salary.paymentDate, salary.status, salary.method],
+                    function (err) {
+                        if (err) reject(err);
+                        else resolve(salary);
+                    });
+            });
+        }
+    },
+
+    updateSalary: async (id, updates) => {
+        if (isVercel) {
+            const dbUpdates = {};
+            if (updates.status) dbUpdates.status = updates.status;
+            // Add mapping for other fields if needed
+
+            const { error } = await supabase.from('salaries').update(dbUpdates).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({ id });
+
+                // Map frontend keys to DB keys for SQLite
+                const dbKeys = keys.map(k => {
+                    if (k === 'paymentDate') return 'payment_date';
+                    if (k === 'employeeId') return 'employee_id';
+                    if (k === 'employeeName') return 'employee_name';
+                    return k;
+                });
+
+                const values = Object.values(updates);
+                values.push(id);
+
+                const setClause = dbKeys.map((k, i) => `${k} = ?`).join(', ');
+
+                db.run(`UPDATE salaries SET ${setClause} WHERE id = ?`, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
+    deleteAllSalaries: async () => {
+        if (isVercel) {
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('salaries').delete().gte('created_at', '1900-01-01');
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM salaries", [], function (err) {
                     if (err) reject(err);
                     else resolve({ success: true });
                 });

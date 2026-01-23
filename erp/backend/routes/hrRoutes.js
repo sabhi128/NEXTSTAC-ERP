@@ -36,5 +36,12 @@ router.get('/attendance', hrController.getAllAttendance);
 router.post('/attendance', hrController.createAttendance);
 router.put('/attendance/:id', hrController.updateAttendance);
 router.delete('/attendance/all', hrController.deleteAllAttendance);
+router.delete('/attendance/:id', hrController.deleteAttendance);
+
+// Payroll
+router.get('/salaries', hrController.getSalaries);
+router.post('/salaries/process', hrController.processPayroll);
+router.put('/salaries/:id', hrController.updateSalary);
+router.delete('/salaries/all', hrController.deleteAllSalaries);
 
 export default router;

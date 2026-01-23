@@ -475,6 +475,23 @@ export const updateAttendance = async (req, res) => {
     }
 };
 
+export const deleteAttendance = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { id } = req.params;
+        await dbAdapter.hr.deleteAttendance(id);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error('Delete Attendance Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const deleteAllAttendance = async (req, res) => {
     try {
         const userRole = (req.user?.role || 'user').toLowerCase();
@@ -487,6 +504,89 @@ export const deleteAllAttendance = async (req, res) => {
 
     } catch (err) {
         console.error('Delete All Attendance Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// --- Payroll ---
+
+export const getSalaries = async (req, res) => {
+    try {
+        const salaries = await dbAdapter.hr.getSalaries();
+        res.json(salaries);
+    } catch (err) {
+        console.error('Get Salaries Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const processPayroll = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized: Only Admins can run payroll' });
+        }
+
+        const { period } = req.body; // e.g., 'Monthly'
+        // Logic: Get active employees, create a pending salary record for each if not exists for this period
+        // For simplicity, we'll just iterate all employees and create a record for "today".
+
+        const employees = await dbAdapter.hr.getAllEmployees();
+        const processed = [];
+
+        for (const emp of employees) {
+            const salary = {
+                id: uuidv4(),
+                employeeId: emp.id,
+                employeeName: `${emp.firstName} ${emp.lastName}`,
+                amount: emp.salary || 5000, // Fallback if salary field missing
+                paymentDate: new Date().toISOString().split('T')[0],
+                status: 'Pending',
+                method: 'Bank Transfer'
+            };
+            await dbAdapter.hr.createSalary(salary);
+            processed.push(salary);
+        }
+
+        res.status(201).json(processed);
+
+    } catch (err) {
+        console.error('Process Payroll Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateSalary = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { id } = req.params;
+        const updates = req.body; // e.g., { status: 'Paid' }
+
+        const result = await dbAdapter.hr.updateSalary(id, updates);
+        res.json(result);
+
+    } catch (err) {
+        console.error('Update Salary Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllSalaries = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || 'user').toLowerCase();
+        if (userRole !== 'super_admin' && !userRole.includes('admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        await dbAdapter.hr.deleteAllSalaries();
+        res.json({ success: true, message: 'All payroll records deleted' });
+
+    } catch (err) {
+        console.error('Delete All Salaries Error:', err);
         res.status(500).json({ error: err.message });
     }
 };

@@ -51,6 +51,23 @@ export default function AttendanceLog() {
         }
     });
 
+    // Single Delete State & Mutation
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id) => {
+            return await api.delete(`/hr/attendance/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['attendance']);
+            showToast('Attendance record deleted successfully', 'success');
+            setDeleteModal({ isOpen: false, id: null });
+        },
+        onError: (error) => {
+            showToast(error.message || 'Failed to delete attendance record', 'error');
+        }
+    });
+
     const [deleteAllModal, setDeleteAllModal] = useState(false);
 
     const deleteAllMutation = useMutation({
@@ -228,10 +245,19 @@ export default function AttendanceLog() {
                                     <td className="px-6 py-4 text-right whitespace-nowrap">
                                         <button
                                             onClick={() => handleEditClick(record)}
-                                            className="text-emerald-400 hover:text-emerald-300 font-semibold text-xs bg-emerald-500/10 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                                            className="text-emerald-400 hover:text-emerald-300 font-semibold text-xs bg-emerald-500/10 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors mr-2"
                                         >
                                             Edit
                                         </button>
+                                        {(user?.role === 'super_admin' || user?.role?.includes('admin')) && (
+                                            <button
+                                                onClick={() => setDeleteModal({ isOpen: true, id: record.id })}
+                                                className="text-red-400 hover:text-red-300 font-semibold text-xs bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -255,6 +281,16 @@ export default function AttendanceLog() {
                 title="Delete All Attendance Records?"
                 message="Are you sure you want to delete ALL attendance records? This action cannot be undone."
                 confirmText={deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+                variant="destructive"
+            />
+
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, id: null })}
+                onConfirm={() => deleteMutation.mutate(deleteModal.id)}
+                title="Delete Attendance Record?"
+                message="Are you sure you want to delete this attendance record?"
+                confirmText={deleteMutation.isPending ? "Deleting..." : "Delete"}
                 variant="destructive"
             />
         </div >

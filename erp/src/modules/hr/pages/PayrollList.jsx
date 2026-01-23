@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import PayrollModal from '../components/PayrollModal';
 import {
     DollarSign,
@@ -20,7 +20,7 @@ export default function PayrollList() {
     const { showToast } = useToast();
     const { data: salaries, isLoading } = useQuery({
         queryKey: ['salaries'],
-        queryFn: mockDataService.getSalaries,
+        queryFn: () => api.get('/hr/salaries'),
     });
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,11 +28,8 @@ export default function PayrollList() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const processPayrollMutation = useMutation({
-        mutationFn: (period) => {
-            return new Promise(resolve => {
-                // The modal handles the delay UI, but we can verify execution here
-                setTimeout(() => resolve(mockDataService.processPayroll(period)), 500);
-            });
+        mutationFn: async (period) => {
+            return await api.post('/hr/salaries/process', { period });
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['salaries']);
@@ -41,7 +38,9 @@ export default function PayrollList() {
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateSalary(id, { status })), 300)),
+        mutationFn: async ({ id, status }) => {
+            return await api.put(`/hr/salaries/${id}`, { status });
+        },
         onSuccess: () => {
             queryClient.invalidateQueries(['salaries']);
             showToast('Payment status updated', 'success');
@@ -82,13 +81,22 @@ export default function PayrollList() {
         processPayrollMutation.mutate(period);
     };
 
-    const handleDeleteAll = () => {
-        const result = mockDataService.deleteAllSalaries();
-        if (result.success) {
+    const deleteAllMutation = useMutation({
+        mutationFn: async () => {
+            return await api.delete('/hr/salaries/all');
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries(['salaries']);
             showToast('All payroll records deleted', 'success');
             setDeleteAllModal(false);
+        },
+        onError: (error) => {
+            showToast(error.message || 'Failed to delete payroll records', 'error');
         }
+    });
+
+    const handleDeleteAll = () => {
+        deleteAllMutation.mutate();
     };
 
     const handleDownload = (record) => {
@@ -265,7 +273,7 @@ export default function PayrollList() {
                 onConfirm={handleDeleteAll}
                 title="Delete All Payroll Records?"
                 message="Are you sure you want to delete ALL payroll records? This action cannot be undone."
-                confirmText="Delete All"
+                confirmText={deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
                 variant="destructive"
             />
         </div >

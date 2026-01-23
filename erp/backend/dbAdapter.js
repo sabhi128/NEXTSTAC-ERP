@@ -1108,9 +1108,8 @@ dbAdapter.finance = {
         if (isVercel) {
             const { data, error } = await supabase.from('finance_accounts').select('*').order('name', { ascending: true });
             if (error) {
-                // Return defaults if table doesn't exist or empty (optional fallback)
-                console.warn('Error fetching finance_accounts, returning defaults:', error.message);
-                return [];
+                console.error('Error fetching finance_accounts:', error.message);
+                throw new Error(error.message); // Throw so controller handles it (500)
             }
             return data.map(a => ({
                 id: a.id,

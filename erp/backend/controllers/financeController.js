@@ -20,11 +20,8 @@ export const getAccounts = async (req, res) => {
         // Auto-seed if empty
         if (!accounts || accounts.length === 0) {
             console.log('Seeding default accounts...');
-            const { chartOfAccounts } = await import('../data/chartOfAccounts_backend.js');
-            // We need to create this file or just hardcode it here. Hardcoding is safer for now.
-            // Actually, let's just use the frontend one if we can/duplicate it, OR better:
-            // Just return empty and let frontend trigger seed? No, backend should handle it.
-            // Let's define defaults here.
+            // const { chartOfAccounts } = await import('../data/chartOfAccounts_backend.js'); 
+            // Use hardcoded defaults to avoid file dependency issues
             const defaultAccounts = [
                 { id: 'cash', name: 'Cash on Hand', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Physical cash' },
                 { id: 'bank', name: 'Bank Account', type: 'Asset', category: 'Current Asset', normalBalance: 'Debit', description: 'Business bank account' },

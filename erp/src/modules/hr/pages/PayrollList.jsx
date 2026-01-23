@@ -39,6 +39,9 @@ export default function PayrollList() {
         onSuccess: () => {
             queryClient.invalidateQueries(['salaries']);
             showToast('Payroll processed successfully', 'success');
+        },
+        onError: (error) => {
+            showToast(error.message || 'Failed to process payroll', 'error');
         }
     });
 

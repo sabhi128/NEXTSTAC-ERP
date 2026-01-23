@@ -768,7 +768,8 @@ dbAdapter.hr = {
 
     createSalary: async (salary) => {
         if (isVercel) {
-            const { error } = await supabase.from('salaries').insert([{
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('salaries').insert([{
                 id: salary.id,
                 employee_id: salary.employeeId,
                 employee_name: salary.employeeName,
@@ -793,11 +794,12 @@ dbAdapter.hr = {
 
     updateSalary: async (id, updates) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const dbUpdates = {};
             if (updates.status) dbUpdates.status = updates.status;
             // Add mapping for other fields if needed
 
-            const { error } = await supabase.from('salaries').update(dbUpdates).eq('id', id);
+            const { error } = await client.from('salaries').update(dbUpdates).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {

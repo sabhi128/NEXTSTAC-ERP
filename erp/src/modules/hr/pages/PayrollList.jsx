@@ -15,7 +15,10 @@ import { useToast } from '../../../context/ToastContext';
 import { Trash2 } from 'lucide-react';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
+
+// Apply the plugin to jsPDF
+applyPlugin(jsPDF);
 
 export default function PayrollList() {
     const queryClient = useQueryClient();
@@ -148,10 +151,14 @@ export default function PayrollList() {
                 ],
                 theme: 'grid',
                 headStyles: { fillColor: [79, 70, 229] }, // Indigo
+                didDrawPage: (data) => {
+                    // Footer can go here if needed per page
+                }
             });
 
             // Footer
-            const finalY = doc.lastAutoTable.finalY || 150;
+            // Get finalY from the doc object or the hook data if needed, but lastAutoTable should be attached to doc by the plugin even if called functionally
+            const finalY = doc.lastAutoTable?.finalY || 150;
             doc.setFontSize(8);
             doc.setTextColor(150);
             doc.text('This is a system generated payslip.', 105, finalY + 20, { align: 'center' });

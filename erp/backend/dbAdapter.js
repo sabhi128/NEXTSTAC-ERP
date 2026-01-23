@@ -1111,7 +1111,7 @@ dbAdapter.finance = {
                 console.error('Error fetching finance_accounts:', error.message);
                 throw new Error(error.message); // Throw so controller handles it (500)
             }
-            return data.map(a => ({
+            return (data || []).map(a => ({
                 id: a.id,
                 name: a.name,
                 type: a.type,

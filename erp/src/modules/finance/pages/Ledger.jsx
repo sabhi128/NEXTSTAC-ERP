@@ -13,14 +13,14 @@ export default function Ledger() {
 
     const { data: accounts, isLoading: accountsLoading, isError: accountsError, error: accError } = useQuery({
         queryKey: ['accounts'],
-        queryFn: () => api.get('/finance/accounts').then(res => res.data),
+        queryFn: () => api.get('/finance/accounts').then(res => res),
         retry: 2,
         staleTime: 5000
     });
 
     const { data: transactions, isLoading: transactionsLoading, isError: transactionsError, error: txError } = useQuery({
         queryKey: ['transactions'],
-        queryFn: () => api.get('/finance/transactions').then(res => res.data),
+        queryFn: () => api.get('/finance/transactions').then(res => res),
         retry: 2,
         staleTime: 5000
     });

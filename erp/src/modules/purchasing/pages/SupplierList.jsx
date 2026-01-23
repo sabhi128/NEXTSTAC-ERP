@@ -68,6 +68,12 @@ export default function SupplierList() {
         onSuccess: () => {
             queryClient.invalidateQueries(['vendors']);
             setDeleteConfirm({ isOpen: false, id: null });
+            showToast('Vendor deleted successfully', 'success');
+        },
+        onError: (error) => {
+            console.error("Failed to delete vendor:", error);
+            showToast(error.message || 'Failed to delete vendor. It may have related records.', 'error');
+            setDeleteConfirm({ isOpen: false, id: null });
         }
     });
 

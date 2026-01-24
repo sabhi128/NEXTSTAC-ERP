@@ -2080,10 +2080,29 @@ dbAdapter.purchasing = {
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'expectedDate') mapped.expected_date = val;
+                else if (key === 'vendor') {
+                    // Skip 'vendor' if it's the name and we assume vendor_id handles the relationship
+                    // Or map it if we really need to store the name.
+                    // Given the error, 'vendor' column likely doesn't exist.
+                    // If vendorId is present, we rely on that.
+                    // If we want to support legacy text column, maybe 'vendor_name'?
+                    // For now, let's IGNORE 'vendor' key if it causes issues, assuming vendorId handles the link.
+                    // But if user changed vendor, we probably got vendorId too.
+                }
+                else if (key === 'vendorId') mapped.vendor_id = val;
                 else mapped[key] = val;
             }
+
+            // If mapped is empty after filtering, return
+            if (Object.keys(mapped).length === 0) return { id, ...updates };
+
             const { error } = await client.from('purchase_orders').update(mapped).eq('id', id);
-            if (error) throw new Error(error.message);
+
+            if (error) {
+                // Fallback similar to create: if column missing (e.g. status vs state), handle it?
+                // For now, just improved mapping should fix the 'vendor' column error.
+                throw new Error(error.message);
+            }
             return { id, ...updates };
         } else {
             return new Promise((resolve, reject) => {

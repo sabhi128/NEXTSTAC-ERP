@@ -18,6 +18,11 @@ import { containerVariants, cardVariants } from '../../../components/ui/animatio
 import { useToast } from '../../../context/ToastContext';
 import { FloatingOrbs, AnimatedGrid } from '../../../components/shared/BackgroundEffects';
 import { PremiumCard, PremiumButton, StatCard } from '../../../components/shared/PremiumComponents';
+import jsPDF from 'jspdf';
+import { applyPlugin } from 'jspdf-autotable';
+
+// Apply the plugin to jsPDF
+applyPlugin(jsPDF);
 
 export default function EcommerceDashboard() {
     const navigate = useNavigate();
@@ -64,15 +69,100 @@ export default function EcommerceDashboard() {
     const lowStockProducts = products?.filter(p => p.stock < p.minStock) || [];
 
     const handleDownloadReport = () => {
-        const element = document.createElement("a");
-        const file = new Blob(["Ecommerce Report 2024\n\nRevenue: $" + totalRevenue], { type: 'text/plain' });
-        element.href = URL.createObjectURL(file);
-        element.download = "report_2024.txt";
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
+        try {
+            const doc = new jsPDF();
+            const today = new Date().toLocaleDateString();
 
-        showToast("Report downloaded successfully", "success");
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(44, 62, 80);
+            doc.text('E-commerce Dashboard Report', 105, 20, { align: 'center' });
+
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generated on: ${today}`, 105, 28, { align: 'center' });
+
+            // Summary Stats
+            doc.setFontSize(14);
+            doc.setTextColor(44, 62, 80);
+            doc.text('Key Metrics', 14, 40);
+
+            const statsData = [
+                ['Total Revenue', `$${totalRevenue.toLocaleString()}`],
+                ['Total Orders', totalOrders.toString()],
+                ['Active Customers', customers?.length.toString() || '0'],
+                ['Total Products', products?.length.toString() || '0']
+            ];
+
+            doc.autoTable({
+                startY: 45,
+                head: [['Metric', 'Value']],
+                body: statsData,
+                theme: 'grid',
+                headStyles: { fillColor: [59, 130, 246] }, // Blue
+                styles: { fontSize: 10 }
+            });
+
+            // Recent Orders
+            let currentY = doc.lastAutoTable.finalY + 15;
+            doc.setFontSize(14);
+            doc.setTextColor(44, 62, 80);
+            doc.text('Recent Orders', 14, currentY);
+
+            const ordersData = orders?.slice(0, 10).map(order => [
+                order.orderNumber,
+                new Date(order.date).toLocaleDateString(),
+                order.customerName,
+                `$${order.amount.toLocaleString()}`,
+                order.status
+            ]) || [];
+
+            doc.autoTable({
+                startY: currentY + 5,
+                head: [['Order #', 'Date', 'Customer', 'Amount', 'Status']],
+                body: ordersData,
+                theme: 'striped',
+                headStyles: { fillColor: [79, 70, 229] }, // Indigo
+                styles: { fontSize: 9 }
+            });
+
+            // Low Stock Alerts
+            if (lowStockProducts.length > 0) {
+                currentY = doc.lastAutoTable.finalY + 15;
+                doc.setFontSize(14);
+                doc.setTextColor(185, 28, 28); // Red
+                doc.text('Low Stock Alerts', 14, currentY);
+
+                const stockData = lowStockProducts.map(p => [
+                    p.name,
+                    p.sku,
+                    p.stock.toString(),
+                    p.minStock.toString()
+                ]);
+
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Product', 'SKU', 'Current Stock', 'Min Stock']],
+                    body: stockData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [220, 38, 38] }, // Red
+                    styles: { fontSize: 9 }
+                });
+            }
+
+            // Footer
+            const finalY = doc.lastAutoTable.finalY + 20;
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text('NEXTSTAC ERP - System Generated Report', 105, 280, { align: 'center' }); // Bottom of page
+
+            doc.save(`Ecommerce_Report_${today.replace(/\//g, '-')}.pdf`);
+            showToast("Report downloaded successfully", "success");
+
+        } catch (error) {
+            console.error('Report generation failed:', error);
+            showToast("Failed to generate report", "error");
+        }
     };
 
     const handleConnectStore = () => {

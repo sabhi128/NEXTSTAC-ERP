@@ -2200,6 +2200,7 @@ dbAdapter.purchasing = {
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'dueDate') mapped.due_date = val;
+                else if (key === 'billNumber') mapped.bill_number = val;
                 else if (key === 'vendor') { /* Ignore vendor name updates to prevent schema error */ }
                 else if (key === 'vendorId') mapped.vendor_id = val;
                 else mapped[key] = val;

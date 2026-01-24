@@ -1888,7 +1888,8 @@ dbAdapter.crm = {
 dbAdapter.purchasing = {
     getVendors: async () => {
         if (isVercel) {
-            const { data, error } = await supabase
+            const client = supabaseAdmin || supabase;
+            const { data, error } = await client
                 .from('vendors')
                 .select('*')
                 .neq('status', 'Deleted')
@@ -1907,6 +1908,7 @@ dbAdapter.purchasing = {
     },
     createVendor: async (vendor) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const payload = {
                 id: vendor.id,
                 company_name: vendor.companyName,
@@ -1917,7 +1919,7 @@ dbAdapter.purchasing = {
                 rating: vendor.rating,
                 status: vendor.status
             };
-            const { error } = await supabase.from('vendors').insert([payload]);
+            const { error } = await client.from('vendors').insert([payload]);
             if (error) throw new Error(error.message);
             return vendor;
         } else {
@@ -1932,13 +1934,14 @@ dbAdapter.purchasing = {
     },
     updateVendor: async (id, updates) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'companyName') mapped.company_name = val;
                 else if (key === 'contactPerson') mapped.contact_person = val;
                 else mapped[key] = val;
             }
-            const { error } = await supabase.from('vendors').update(mapped).eq('id', id);
+            const { error } = await client.from('vendors').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
@@ -1961,8 +1964,9 @@ dbAdapter.purchasing = {
     },
     deleteVendor: async (id) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             // Soft Delete: Mark as 'Deleted' to preserve FKs and history
-            const { error } = await supabase.from('vendors').update({ status: 'Deleted' }).eq('id', id);
+            const { error } = await client.from('vendors').update({ status: 'Deleted' }).eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
@@ -2001,6 +2005,7 @@ dbAdapter.purchasing = {
     },
     createPurchaseOrder: async (po) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const payload = {
                 id: po.id,
                 po_number: po.poNumber,
@@ -2011,7 +2016,7 @@ dbAdapter.purchasing = {
                 amount: po.amount,
                 status: po.status
             };
-            const { error } = await supabase.from('purchase_orders').insert([payload]);
+            const { error } = await client.from('purchase_orders').insert([payload]);
             if (error) {
                 // Fallback: Check for common schema issues like missing columns
                 if (error.code === '42703' || error.message?.toLowerCase().includes('column')) { // Undefined column or schema error
@@ -2021,7 +2026,7 @@ dbAdapter.purchasing = {
                     // expected_date might be the culprit if schema is old
                     if (error.message?.includes('expected_date')) {
                         delete payload.expected_date;
-                        const { error: retryError } = await supabase.from('purchase_orders').insert([payload]);
+                        const { error: retryError } = await client.from('purchase_orders').insert([payload]);
                         if (retryError) throw new Error(retryError.message);
                     } else if (error.message?.includes('vendor')) {
                         // Vendor column missing, try vendor_id or vendor_name
@@ -2031,14 +2036,14 @@ dbAdapter.purchasing = {
                         // Try with vendor_id if available
                         if (po.vendorId) {
                             const payloadWithId = { ...payload, vendor_id: po.vendorId };
-                            const { error: retryIdError } = await supabase.from('purchase_orders').insert([payloadWithId]);
+                            const { error: retryIdError } = await client.from('purchase_orders').insert([payloadWithId]);
                             if (!retryIdError) return po; // Success with ID
                             // If ID failed, fall through to try name?
                         }
 
                         // Try with vendor_name as last resort (or if no ID)
                         const payloadWithName = { ...payload, vendor_name: po.vendor };
-                        const { error: retryNameError } = await supabase.from('purchase_orders').insert([payloadWithName]);
+                        const { error: retryNameError } = await client.from('purchase_orders').insert([payloadWithName]);
                         if (retryNameError) {
                             // If both failed, throw original or last error
                             throw new Error(`Failed with vendor fallbacks: ${retryNameError.message}`);
@@ -2063,12 +2068,13 @@ dbAdapter.purchasing = {
     },
     updatePurchaseOrder: async (id, updates) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'expectedDate') mapped.expected_date = val;
                 else mapped[key] = val;
             }
-            const { error } = await supabase.from('purchase_orders').update(mapped).eq('id', id);
+            const { error } = await client.from('purchase_orders').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
@@ -2090,7 +2096,8 @@ dbAdapter.purchasing = {
     },
     deletePurchaseOrder: async (id) => {
         if (isVercel) {
-            const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('purchase_orders').delete().eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
@@ -2137,6 +2144,7 @@ dbAdapter.purchasing = {
     },
     createBill: async (bill) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const payload = {
                 id: bill.id,
                 bill_number: bill.billNumber,
@@ -2146,7 +2154,7 @@ dbAdapter.purchasing = {
                 amount: bill.amount,
                 status: bill.status
             };
-            const { error } = await supabase.from('bills').insert([payload]);
+            const { error } = await client.from('bills').insert([payload]);
             if (error) throw new Error(error.message);
             return bill;
         } else {
@@ -2161,12 +2169,13 @@ dbAdapter.purchasing = {
     },
     updateBill: async (id, updates) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'dueDate') mapped.due_date = val;
                 else mapped[key] = val;
             }
-            const { error } = await supabase.from('bills').update(mapped).eq('id', id);
+            const { error } = await client.from('bills').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
@@ -2188,7 +2197,8 @@ dbAdapter.purchasing = {
     },
     deleteBill: async (id) => {
         if (isVercel) {
-            const { error } = await supabase.from('bills').delete().eq('id', id);
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('bills').delete().eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
@@ -2203,7 +2213,8 @@ dbAdapter.purchasing = {
 
     deleteAllBills: async () => {
         if (isVercel) {
-            const { error } = await supabase.from('bills').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('bills').delete().neq('id', '00000000-0000-0000-0000-000000000000');
             if (error) throw new Error(error.message);
             return true;
         } else {
@@ -2219,7 +2230,8 @@ dbAdapter.purchasing = {
 
 dbAdapter.purchasing.deleteAllVendors = async () => {
     if (isVercel) {
-        const { error } = await supabase.from('vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        const client = supabaseAdmin || supabase;
+        const { error } = await client.from('vendors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (error) throw new Error(error.message);
         return true;
     } else {
@@ -2234,7 +2246,8 @@ dbAdapter.purchasing.deleteAllVendors = async () => {
 
 dbAdapter.purchasing.deleteAllPurchaseOrders = async () => {
     if (isVercel) {
-        const { error } = await supabase.from('purchase_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        const client = supabaseAdmin || supabase;
+        const { error } = await client.from('purchase_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (error) throw new Error(error.message);
         return true;
     } else {

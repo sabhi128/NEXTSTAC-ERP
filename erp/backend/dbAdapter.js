@@ -2200,8 +2200,11 @@ dbAdapter.purchasing = {
             const mapped = {};
             for (const [key, val] of Object.entries(updates)) {
                 if (key === 'dueDate') mapped.due_date = val;
+                else if (key === 'vendor') { /* Ignore vendor name updates to prevent schema error */ }
+                else if (key === 'vendorId') mapped.vendor_id = val;
                 else mapped[key] = val;
             }
+            if (Object.keys(mapped).length === 0) return { id, ...updates };
             const { error } = await client.from('bills').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };

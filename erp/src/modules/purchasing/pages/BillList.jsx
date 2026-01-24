@@ -127,8 +127,18 @@ export default function BillList() {
             />
             <BillModal
                 isOpen={isFormOpen}
-                onClose={() => setIsFormOpen(false)}
-                onSubmit={(data) => addMutation.mutate(data)}
+                onClose={() => {
+                    setIsFormOpen(false);
+                    setEditingBill(null);
+                }}
+                initialData={editingBill}
+                onSubmit={(data) => {
+                    if (editingBill) {
+                        updateMutation.mutate({ id: editingBill.id, data });
+                    } else {
+                        addMutation.mutate(data);
+                    }
+                }}
             />
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -279,7 +289,17 @@ export default function BillList() {
                                                 </span>
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingBill(bill);
+                                                    setIsFormOpen(true);
+                                                }}
+                                                className="p-2 text-slate-400 hover:text-teal-400 hover:bg-teal-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                title="Edit Bill"
+                                            >
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
                                             <button
                                                 onClick={() => {
                                                     setDeleteConfirm({ isOpen: true, id: bill.id, isDeleteAll: false });

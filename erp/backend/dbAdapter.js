@@ -1889,13 +1889,20 @@ dbAdapter.purchasing = {
     getVendors: async () => {
         if (isVercel) {
             const client = supabaseAdmin || supabase;
+            if (!client) {
+                console.error("[getVendors] Supabase client not initialized. Admin:", !!supabaseAdmin, "Anon:", !!supabase);
+                throw new Error("Supabase client not initialized. Check server logs/env vars.");
+            }
             const { data, error } = await client
                 .from('vendors')
                 .select('*')
                 .neq('status', 'Deleted')
                 .order('created_at', { ascending: false });
 
-            if (error) throw new Error(error.message);
+            if (error) {
+                console.error("[getVendors] Supabase error:", error);
+                throw new Error(`DB Error: ${error.message}`);
+            }
             return data;
         } else {
             return new Promise((resolve, reject) => {
@@ -1909,6 +1916,7 @@ dbAdapter.purchasing = {
     createVendor: async (vendor) => {
         if (isVercel) {
             const client = supabaseAdmin || supabase;
+            if (!client) throw new Error("Supabase client not initialized");
             const payload = {
                 id: vendor.id,
                 company_name: vendor.companyName,

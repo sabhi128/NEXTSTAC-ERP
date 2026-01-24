@@ -29,7 +29,7 @@ export default function BillList() {
 
     const { data: bills = [], isLoading } = useQuery({
         queryKey: ['bills'],
-        queryFn: () => api.get('/purchasing/bills').then(res => res.data),
+        queryFn: () => api.get('/purchasing/bills'),
     });
 
     const addMutation = useMutation({

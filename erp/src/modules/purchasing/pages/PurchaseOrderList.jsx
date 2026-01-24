@@ -139,8 +139,18 @@ export default function PurchaseOrderList() {
             />
             <PurchaseOrderModal
                 isOpen={isFormOpen}
-                onClose={() => setIsFormOpen(false)}
-                onSubmit={(data) => addMutation.mutate(data)}
+                onClose={() => {
+                    setIsFormOpen(false);
+                    setEditingPO(null);
+                }}
+                initialData={editingPO}
+                onSubmit={(data) => {
+                    if (editingPO) {
+                        updateMutation.mutate({ id: editingPO.id, data });
+                    } else {
+                        addMutation.mutate(data);
+                    }
+                }}
             />
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -278,7 +288,17 @@ export default function PurchaseOrderList() {
                                                 {po.status}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingPO(po);
+                                                    setIsFormOpen(true);
+                                                }}
+                                                className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                title="Edit PO"
+                                            >
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
                                             <button
                                                 onClick={() => {
                                                     setDeleteConfirm({ isOpen: true, id: po.id });

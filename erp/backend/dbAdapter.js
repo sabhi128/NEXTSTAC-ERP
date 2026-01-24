@@ -992,18 +992,21 @@ dbAdapter.inventory = {
     },
     deleteAllProducts: async () => {
         if (isVercel) {
-            // Check if there are dependent stock movements first
-            // Supabase/Postgres might have FOREIGN KEY constraints.
-            // But we should delete stock movements first if logical, or cascade.
-            // Let's assume user wants to wipe products.
-            const { error } = await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all where id is not nil
+            // Cascade delete: Remove all stock movements first to avoid FK violation
+            const { error: smError } = await supabase.from('stock_movements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (smError) console.error("Error deleting stock movements during product wipe:", smError);
+
+            const { error } = await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
             if (error) throw new Error(error.message);
             return true;
         } else {
             return new Promise((resolve, reject) => {
-                db.run("DELETE FROM products", [], (err) => {
-                    if (err) reject(err);
-                    else resolve(true);
+                db.serialize(() => {
+                    db.run("DELETE FROM stock_movements");
+                    db.run("DELETE FROM products", [], (err) => {
+                        if (err) reject(err);
+                        else resolve(true);
+                    });
                 });
             });
         }

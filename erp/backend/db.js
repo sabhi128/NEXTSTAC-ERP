@@ -236,7 +236,7 @@ async function initSchemaPostgres(pool) {
         await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS delivery_status TEXT DEFAULT 'Processing'`);
 
         // Returns
-        await client.query(`CREATE TABLE IF NOT EXISTS returns (
+        await client.query(`CREATE TABLE IF NOT EXISTS finance_returns (
             id TEXT PRIMARY KEY,
             return_number TEXT UNIQUE NOT NULL,
             reference_invoice TEXT,
@@ -287,7 +287,6 @@ function initSchemaSQLite(db) {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // ... (Keep existing SQLite logic if needed, truncated for brevity unless requested to keep full)
         // Re-adding essential tables for local fallback
         db.run(`CREATE TABLE IF NOT EXISTS employees (
             id TEXT PRIMARY KEY,
@@ -314,6 +313,7 @@ function initSchemaSQLite(db) {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
         db.run(`CREATE TABLE IF NOT EXISTS attendance (
             id TEXT PRIMARY KEY,
             employee_id TEXT,
@@ -327,7 +327,7 @@ function initSchemaSQLite(db) {
         )`);
 
         // Returns
-        db.run(`CREATE TABLE IF NOT EXISTS returns (
+        db.run(`CREATE TABLE IF NOT EXISTS finance_returns (
             id TEXT PRIMARY KEY,
             return_number TEXT UNIQUE NOT NULL,
             reference_invoice TEXT,

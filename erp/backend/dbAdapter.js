@@ -2461,7 +2461,7 @@ dbAdapter.finance = {
     // Returns (Credit/Debit Notes)
     getReturns: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('returns').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('finance_returns').select('*').order('created_at', { ascending: false });
             if (error) throw new Error(error.message);
             return data.map(r => ({
                 id: r.id,
@@ -2476,7 +2476,7 @@ dbAdapter.finance = {
             }));
         } else {
             return new Promise((resolve, reject) => {
-                db.all("SELECT * FROM returns ORDER BY created_at DESC", [], (err, rows) => {
+                db.all("SELECT * FROM finance_returns ORDER BY created_at DESC", [], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows.map(r => ({
                         id: r.id,
@@ -2507,12 +2507,12 @@ dbAdapter.finance = {
                 status: ret.status,
                 date: ret.date
             };
-            const { error } = await supabase.from('returns').insert([payload]);
+            const { error } = await supabase.from('finance_returns').insert([payload]);
             if (error) throw new Error(error.message);
             return ret;
         } else {
             return new Promise((resolve, reject) => {
-                const sql = "INSERT INTO returns (id, return_number, reference_invoice, entity_name, type, amount, reason, status, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                const sql = "INSERT INTO finance_returns (id, return_number, reference_invoice, entity_name, type, amount, reason, status, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 db.run(sql, [ret.id, ret.returnNumber, ret.referenceInvoice, ret.entityName, ret.type, ret.amount, ret.reason, ret.status, ret.date], function (err) {
                     if (err) reject(err);
                     else resolve(ret);
@@ -2523,12 +2523,12 @@ dbAdapter.finance = {
 
     updateReturnStatus: async (id, status) => {
         if (isVercel) {
-            const { error } = await supabase.from('returns').update({ status }).eq('id', id);
+            const { error } = await supabase.from('finance_returns').update({ status }).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, status };
         } else {
             return new Promise((resolve, reject) => {
-                db.run("UPDATE returns SET status = ? WHERE id = ?", [status, id], function (err) {
+                db.run("UPDATE finance_returns SET status = ? WHERE id = ?", [status, id], function (err) {
                     if (err) reject(err);
                     else resolve({ id, status });
                 });
@@ -2539,12 +2539,12 @@ dbAdapter.finance = {
     deleteAllReturns: async () => {
         if (isVercel) {
             const client = supabaseAdmin || supabase;
-            const { error } = await client.from('returns').delete().gte('created_at', '1900-01-01');
+            const { error } = await client.from('finance_returns').delete().gte('created_at', '1900-01-01');
             if (error) throw new Error(error.message);
             return { success: true };
         } else {
             return new Promise((resolve, reject) => {
-                db.run("DELETE FROM returns", [], function (err) {
+                db.run("DELETE FROM finance_returns", [], function (err) {
                     if (err) reject(err);
                     else resolve({ success: true });
                 });

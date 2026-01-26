@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS returns (
+CREATE TABLE IF NOT EXISTS finance_returns (
     id TEXT PRIMARY KEY,
     return_number TEXT UNIQUE NOT NULL,
     reference_invoice TEXT,

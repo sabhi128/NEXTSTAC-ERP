@@ -45,8 +45,8 @@ app.get('/api/fix-schema', async (req, res) => {
         try {
             await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS warehouse TEXT");
 
-            // Create Returns Table
-            await client.query(`CREATE TABLE IF NOT EXISTS returns (
+            // Create Returns Table (finance_returns)
+            await client.query(`CREATE TABLE IF NOT EXISTS finance_returns (
                 id TEXT PRIMARY KEY,
                 return_number TEXT UNIQUE NOT NULL,
                 reference_invoice TEXT,
@@ -59,8 +59,11 @@ app.get('/api/fix-schema', async (req, res) => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
 
+            // Explicitly grant permissions to standard Supabase roles
+            await client.query(`GRANT ALL ON finance_returns TO postgres, anon, authenticated, service_role`);
+
             await client.query("NOTIFY pgrst, 'reload config'");
-            res.json({ success: true, message: "Applied warehouse column, created returns table, and reloaded cache." });
+            res.json({ success: true, message: "Applied warehouse column, created finance_returns table, granted permissions, and reloaded cache." });
         } finally {
             client.release();
         }

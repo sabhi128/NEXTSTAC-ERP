@@ -38,31 +38,34 @@ const Returns = () => {
 
     const queryClient = useQueryClient();
 
-    const { data: returns, isLoading } = useQuery({
+    const { data: returns = [], isLoading, isError } = useQuery({
         queryKey: ['returns'],
-        queryFn: mockDataService.getReturns,
+        queryFn: async () => await api.get('/finance/returns'),
     });
 
     const addReturnMutation = useMutation({
-        mutationFn: mockDataService.addReturn,
+        mutationFn: async (data) => await api.post('/finance/returns', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['returns']);
             setIsModalOpen(false);
             setFormData({ entityName: '', referenceInvoice: '', amount: '', reason: 'Damaged Goods' });
-        }
+        },
+        onError: (err) => alert(`Failed to add return: ${err.message}`)
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }) => new Promise(resolve => setTimeout(() => resolve(mockDataService.updateReturnStatus(id, status)), 300)),
-        onSuccess: () => queryClient.invalidateQueries(['returns'])
+        mutationFn: async ({ id, status }) => await api.patch(`/finance/returns/${id}/status`, { status }),
+        onSuccess: () => queryClient.invalidateQueries(['returns']),
+        onError: (err) => alert(`Failed to update Status: ${err.message}`)
     });
 
     const deleteAllMutation = useMutation({
-        mutationFn: mockDataService.deleteAllReturns,
+        mutationFn: async () => await api.delete('/finance/returns/all'),
         onSuccess: () => {
             queryClient.invalidateQueries(['returns']);
             setIsDeleteModalOpen(false);
-        }
+        },
+        onError: (err) => alert(`Failed to delete all: ${err.message}`)
     });
 
     const getNextStatus = (currentStatus) => {

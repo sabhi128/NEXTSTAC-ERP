@@ -11,6 +11,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { mockDataService } from '../../../services/mockDataService';
+import { api } from '../../../lib/api';
 import { calculateAccountBalance } from '../../../utils/accountingCalculations';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -23,8 +24,15 @@ export default function GenerateReports() {
     const [customEnd, setCustomEnd] = useState('');
 
     // Fetch data
-    const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: mockDataService.getAccounts });
-    const { data: transactions } = useQuery({ queryKey: ['transactions'], queryFn: mockDataService.getTransactions });
+    // Fetch data
+    const { data: accounts } = useQuery({
+        queryKey: ['accounts'],
+        queryFn: async () => await api.get('/finance/accounts')
+    });
+    const { data: transactions } = useQuery({
+        queryKey: ['transactions'],
+        queryFn: async () => await api.get('/finance/transactions')
+    });
 
     // Date Filtering Logic
     const getDateRange = () => {

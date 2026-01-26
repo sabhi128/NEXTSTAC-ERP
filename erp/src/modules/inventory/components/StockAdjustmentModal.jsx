@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, AlertCircle } from 'lucide-react';
 
-export default function StockAdjustmentModal({ isOpen, onClose, onSubmit }) {
+export default function StockAdjustmentModal({ isOpen, onClose, onSubmit, warehouses = [] }) {
+    const defaultWarehouse = warehouses.length > 0 ? warehouses[0].name : 'Main Warehouse';
+
     const [formData, setFormData] = useState({
         productName: '',
         type: 'In',
         quantity: '',
-        warehouse: 'Main Warehouse',
+        warehouse: defaultWarehouse,
         reference: 'MANUAL-ADJ',
         notes: ''
     });
@@ -24,7 +26,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, onSubmit }) {
             productName: '',
             type: 'In',
             quantity: '',
-            warehouse: 'Main Warehouse',
+            warehouse: defaultWarehouse,
             reference: 'MANUAL-ADJ',
             notes: ''
         });
@@ -40,7 +42,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, onSubmit }) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className="p-6 space-y-4">
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Product Name</label>
                         <input
@@ -85,14 +87,25 @@ export default function StockAdjustmentModal({ isOpen, onClose, onSubmit }) {
                             value={formData.warehouse}
                             onChange={e => setFormData({ ...formData, warehouse: e.target.value })}
                         >
-                            <option value="Main Warehouse">Main Warehouse</option>
-                            <option value="North Warehouse">North Warehouse</option>
-                            <option value="South Depot">South Depot</option>
+                            {warehouses.length > 0 ? (
+                                warehouses.map(wh => (
+                                    <option key={wh.id} value={wh.name}>{wh.name}</option>
+                                ))
+                            ) : (
+                                <option value="Main Warehouse">Main Warehouse</option>
+                            )}
                         </select>
                     </div>
 
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Reference / Notes</label>
+                        <textarea
+                            rows="2"
+                            placeholder="Reason for adjustment..."
+                            className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 text-white placeholder:text-slate-500 resize-none transition-all"
+                            value={formData.notes}
+                            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                        />
                         <textarea
                             rows="2"
                             placeholder="Reason for adjustment..."
@@ -118,7 +131,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, onSubmit }) {
                             Save Adjustment
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>,
         document.body

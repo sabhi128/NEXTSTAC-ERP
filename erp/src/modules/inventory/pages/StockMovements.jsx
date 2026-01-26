@@ -37,6 +37,12 @@ export default function StockMovements() {
         queryFn: () => api.get('/inventory/stock-movements'),
     });
 
+    // Fetch Warehouses for Modal
+    const { data: warehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => api.get('/inventory/warehouses').then(res => res.data),
+    });
+
     const deleteAllMutation = useMutation({
         mutationFn: async () => {
             await api.delete('/inventory/stock-movements');
@@ -135,6 +141,7 @@ export default function StockMovements() {
                 onClose={handleCloseModal}
                 onSubmit={handleModalSubmit}
                 movement={selectedMovement}
+                warehouses={warehouses}
             />
 
             <ConfirmationModal

@@ -45,7 +45,7 @@ export default function StockMovements() {
 
     const deleteAllMutation = useMutation({
         mutationFn: async () => {
-            await api.delete('/inventory/stock-movements');
+            await api.delete('/inventory/stock-movements/all');
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['stock_movements']);

@@ -2456,11 +2456,101 @@ dbAdapter.system = {
 
 
 
+// --- Finance Operations ---
+dbAdapter.finance = {
+    // Returns (Credit/Debit Notes)
+    getReturns: async () => {
+        if (isVercel) {
+            const { data, error } = await supabase.from('returns').select('*').order('created_at', { ascending: false });
+            if (error) throw new Error(error.message);
+            return data.map(r => ({
+                id: r.id,
+                returnNumber: r.return_number,
+                referenceInvoice: r.reference_invoice,
+                entityName: r.entity_name,
+                type: r.type,
+                amount: r.amount,
+                reason: r.reason,
+                status: r.status,
+                date: r.date
+            }));
+        } else {
+            return new Promise((resolve, reject) => {
+                db.all("SELECT * FROM returns ORDER BY created_at DESC", [], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows.map(r => ({
+                        id: r.id,
+                        returnNumber: r.return_number,
+                        referenceInvoice: r.reference_invoice,
+                        entityName: r.entity_name,
+                        type: r.type,
+                        amount: r.amount,
+                        reason: r.reason,
+                        status: r.status,
+                        date: r.date
+                    })));
+                });
+            });
+        }
+    },
 
+    createReturn: async (ret) => {
+        if (isVercel) {
+            const payload = {
+                id: ret.id,
+                return_number: ret.returnNumber,
+                reference_invoice: ret.referenceInvoice,
+                entity_name: ret.entityName,
+                type: ret.type,
+                amount: ret.amount,
+                reason: ret.reason,
+                status: ret.status,
+                date: ret.date
+            };
+            const { error } = await supabase.from('returns').insert([payload]);
+            if (error) throw new Error(error.message);
+            return ret;
+        } else {
+            return new Promise((resolve, reject) => {
+                const sql = "INSERT INTO returns (id, return_number, reference_invoice, entity_name, type, amount, reason, status, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                db.run(sql, [ret.id, ret.returnNumber, ret.referenceInvoice, ret.entityName, ret.type, ret.amount, ret.reason, ret.status, ret.date], function (err) {
+                    if (err) reject(err);
+                    else resolve(ret);
+                });
+            });
+        }
+    },
 
+    updateReturnStatus: async (id, status) => {
+        if (isVercel) {
+            const { error } = await supabase.from('returns').update({ status }).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, status };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("UPDATE returns SET status = ? WHERE id = ?", [status, id], function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, status });
+                });
+            });
+        }
+    },
 
-
-
-
+    deleteAllReturns: async () => {
+        if (isVercel) {
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('returns').delete().gte('created_at', '1900-01-01');
+            if (error) throw new Error(error.message);
+            return { success: true };
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM returns", [], function (err) {
+                    if (err) reject(err);
+                    else resolve({ success: true });
+                });
+            });
+        }
+    }
+};
 
 export default dbAdapter;

@@ -325,3 +325,58 @@ export const deletePayment = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// --- Returns ---
+export const getReturns = async (req, res) => {
+    try {
+        const returns = await dbAdapter.finance.getReturns();
+        res.json(returns);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const createReturn = async (req, res) => {
+    const { entityName, referenceInvoice, amount, reason, type } = req.body;
+
+    const id = uuidv4();
+    const returnNumber = `RET-${Math.floor(10000 + Math.random() * 90000)}`;
+    const date = new Date().toISOString();
+
+    const newReturn = {
+        id,
+        returnNumber,
+        referenceInvoice,
+        entityName,
+        type,
+        amount,
+        reason,
+        status: 'Pending',
+        date
+    };
+
+    try {
+        const saved = await dbAdapter.finance.createReturn(newReturn);
+        res.status(201).json(saved);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateReturnStatus = async (req, res) => {
+    try {
+        const result = await dbAdapter.finance.updateReturnStatus(req.params.id, req.body.status);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAllReturns = async (req, res) => {
+    try {
+        await dbAdapter.finance.deleteAllReturns();
+        res.json({ message: 'All returns deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

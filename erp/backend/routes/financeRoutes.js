@@ -35,4 +35,10 @@ router.patch('/payments/:id', financeController.updatePayment);
 router.delete('/payments/all', financeController.deleteAllPayments);
 router.delete('/payments/:id', financeController.deletePayment);
 
+// Returns
+router.get('/returns', financeController.getReturns);
+router.post('/returns', financeController.createReturn);
+router.patch('/returns/:id/status', financeController.updateReturnStatus);
+router.delete('/returns/all', financeController.deleteAllReturns);
+
 export default router;

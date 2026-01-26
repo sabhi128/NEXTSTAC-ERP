@@ -235,6 +235,20 @@ async function initSchemaPostgres(pool) {
         // Migration: Add delivery_status if missing (for Sales Orders)
         await client.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS delivery_status TEXT DEFAULT 'Processing'`);
 
+        // Returns
+        await client.query(`CREATE TABLE IF NOT EXISTS returns (
+            id TEXT PRIMARY KEY,
+            return_number TEXT UNIQUE NOT NULL,
+            reference_invoice TEXT,
+            entity_name TEXT,
+            type TEXT CHECK(type IN ('Credit Note', 'Debit Note')),
+            amount DECIMAL(15,2),
+            reason TEXT,
+            status TEXT DEFAULT 'Pending',
+            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         // Documents
         await client.query(`CREATE TABLE IF NOT EXISTS documents (
             id TEXT PRIMARY KEY,
@@ -309,6 +323,20 @@ function initSchemaSQLite(db) {
             check_out TEXT,
             status TEXT,
             work_hours TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Returns
+        db.run(`CREATE TABLE IF NOT EXISTS returns (
+            id TEXT PRIMARY KEY,
+            return_number TEXT UNIQUE NOT NULL,
+            reference_invoice TEXT,
+            entity_name TEXT,
+            type TEXT CHECK(type IN ('Credit Note', 'Debit Note')),
+            amount REAL,
+            reason TEXT,
+            status TEXT DEFAULT 'Pending',
+            date DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 

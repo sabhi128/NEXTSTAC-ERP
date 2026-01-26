@@ -21,6 +21,7 @@ import InvoiceStatusSelect from '../components/invoices/InvoiceStatusSelect';
 export default function InvoiceList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editInvoice, setEditInvoice] = useState(null); // Track invoice being edited
     const [statusFilter, setStatusFilter] = useState('All');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
@@ -84,14 +85,42 @@ export default function InvoiceList() {
         }
     });
 
+    const updateInvoiceMutation = useMutation({
+        mutationFn: async ({ id, data }) => await api.patch(`/finance/invoices/${id}`, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['invoices']);
+            setShowForm(false);
+            setEditInvoice(null);
+        },
+        onError: (error) => {
+            alert(`Failed to update invoice: ${error.message}`);
+        }
+    });
+
+    const handleEdit = (invoice) => {
+        setEditInvoice(invoice);
+        setShowForm(true);
+    };
+
+    const handleCreate = () => {
+        setEditInvoice(null);
+        setShowForm(true);
+    };
+
+    const handleSave = (data) => {
+        if (editInvoice) {
+            updateInvoiceMutation.mutate({ id: editInvoice.id, data });
+        } else {
+            addInvoiceMutation.mutate(data);
+        }
+    };
+
     const filteredInvoices = invoices?.filter(inv => {
         const matchesSearch = inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             inv.customer.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
-
-
 
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
     if (isError) return <div className="p-8 text-center text-red-400">Failed to load invoices. Please refresh the page.</div>;
@@ -100,9 +129,10 @@ export default function InvoiceList() {
         <div className="min-h-screen">
             {showForm && (
                 <InvoiceForm
-                    onSave={(data) => addInvoiceMutation.mutate(data)}
-                    onCancel={() => setShowForm(false)}
+                    onSave={handleSave}
+                    onCancel={() => { setShowForm(false); setEditInvoice(null); }}
                     products={products || []}
+                    initialData={editInvoice}
                 />
             )}
 
@@ -123,7 +153,7 @@ export default function InvoiceList() {
                             </button>
                         )}
                         <button
-                            onClick={() => setShowForm(true)}
+                            onClick={handleCreate}
                             className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
                         >
                             <Plus className="w-5 h-5" />
@@ -232,10 +262,17 @@ export default function InvoiceList() {
                                             />
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => handleEdit(invoice)}
+                                                    className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors"
+                                                    title="Edit Invoice"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                                                </button>
                                                 <button
                                                     onClick={() => setDeleteModal({ isOpen: true, id: invoice.id })}
-                                                    className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                    className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-xl transition-all"
                                                     title="Delete Invoice"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
@@ -284,7 +321,14 @@ export default function InvoiceList() {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-1">
+                            <div className="flex justify-end pt-1 gap-2">
+                                <button
+                                    onClick={() => handleEdit(invoice)}
+                                    className="text-slate-500 hover:text-indigo-400 p-2 hover:bg-indigo-500/10 rounded-xl transition-colors flex items-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                                    <span className="text-sm font-bold">Edit</span>
+                                </button>
                                 <button
                                     onClick={() => setDeleteModal({ isOpen: true, id: invoice.id })}
                                     className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-2"

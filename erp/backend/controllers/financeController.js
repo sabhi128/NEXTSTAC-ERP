@@ -235,6 +235,15 @@ export const updateInvoiceStatus = async (req, res) => {
     }
 };
 
+export const updateInvoice = async (req, res) => {
+    try {
+        const result = await dbAdapter.finance.updateInvoice(req.params.id, req.body);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const deleteInvoice = async (req, res) => {
     try {
         await dbAdapter.finance.deleteInvoice(req.params.id);

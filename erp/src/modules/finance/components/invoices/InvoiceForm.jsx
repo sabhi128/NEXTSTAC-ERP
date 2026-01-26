@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, X, Calculator, Save } from 'lucide-react';
 
-const InvoiceForm = ({ onSave, onCancel, products = [] }) => {
-    const [customer, setCustomer] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [dueDate, setDueDate] = useState('');
-    const [items, setItems] = useState([
+const InvoiceForm = ({ onSave, onCancel, products = [], initialData = null }) => {
+    const [customer, setCustomer] = useState(initialData?.customer || '');
+    const [date, setDate] = useState(initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    const [dueDate, setDueDate] = useState(initialData?.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '');
+    const [items, setItems] = useState(initialData?.items && initialData.items.length > 0 ? initialData.items : [
         { id: 1, productId: '', quantity: 1, price: 0, tradeDiscount: 0 }
     ]);
-    const [cashDiscount, setCashDiscount] = useState(0); // Percentage
-    const [paymentTerms, setPaymentTerms] = useState('Net 30');
+    const [cashDiscount, setCashDiscount] = useState(initialData?.cashDiscount || 0); // Percentage
+    const [paymentTerms, setPaymentTerms] = useState(initialData?.paymentTerms || 'Net 30');
 
     // Calculate totals
     const subtotal = items.reduce((sum, item) => {
@@ -79,8 +79,8 @@ const InvoiceForm = ({ onSave, onCancel, products = [] }) => {
                     {/* Header */}
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-2xl font-black text-white tracking-tight">New Invoice</h2>
-                            <p className="text-slate-400 text-sm mt-1">Create a new invoice with discounts</p>
+                            <h2 className="text-2xl font-black text-white tracking-tight">{initialData ? 'Edit Invoice' : 'New Invoice'}</h2>
+                            <p className="text-slate-400 text-sm mt-1">{initialData ? 'Update invoice details' : 'Create a new invoice with discounts'}</p>
                         </div>
                         <button type="button" onClick={onCancel} className="p-2 hover:bg-slate-700/50 rounded-full transition-colors group">
                             <X className="w-6 h-6 text-slate-500 group-hover:text-white" />

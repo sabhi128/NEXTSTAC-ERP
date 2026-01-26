@@ -1416,6 +1416,48 @@ dbAdapter.finance = {
         }
     },
 
+    updateInvoice: async (id, updates) => {
+        if (isVercel) {
+            const mapped = {};
+            for (const [key, val] of Object.entries(updates)) {
+                if (key === 'invoiceNumber') mapped.invoice_number = val;
+                else if (key === 'customer') mapped.customer_name = val;
+                else if (key === 'dueDate') mapped.due_date = val;
+                else if (key === 'itemsCount') mapped.items_count = val;
+                else mapped[key] = val;
+            }
+            // Remove non-db fields if any
+            delete mapped.items;
+
+            if (Object.keys(mapped).length === 0) return { id, ...updates };
+
+            const { error } = await supabase.from('invoices').update(mapped).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates).filter(k => k !== 'items'); // Filter out items array
+                if (keys.length === 0) return resolve({});
+
+                const fields = keys.map((key) => {
+                    if (key === 'invoiceNumber') return 'invoice_number = ?';
+                    if (key === 'customer') return 'customer_name = ?';
+                    if (key === 'dueDate') return 'due_date = ?';
+                    if (key === 'itemsCount') return 'items_count = ?';
+                    return `${key} = ?`;
+                });
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+
+                const sql = `UPDATE invoices SET ${fields.join(', ')} WHERE id = ?`;
+                db.run(sql, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
     updateInvoiceStatus: async (id, status) => {
         if (isVercel) {
             const { error } = await supabase.from('invoices').update({ status }).eq('id', id);

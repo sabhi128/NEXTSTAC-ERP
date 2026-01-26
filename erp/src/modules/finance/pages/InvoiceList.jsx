@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockDataService } from '../../../services/mockDataService';
+// import { mockDataService } from '../../../services/mockDataService';
 import { api } from '../../../lib/api';
 import InvoiceForm from '../components/invoices/InvoiceForm';
 import {
@@ -37,14 +37,7 @@ export default function InvoiceList() {
     // Products can still use mock service if needed, or switch to api also
     const { data: products = [] } = useQuery({
         queryKey: ['products'],
-        queryFn: async () => {
-            try {
-                return await mockDataService.getProducts();
-            } catch (e) {
-                console.warn("Failed to load products", e);
-                return [];
-            }
-        },
+        queryFn: async () => await api.get('/inventory/products'),
     });
 
     const deleteInvoiceMutation = useMutation({

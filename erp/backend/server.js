@@ -44,8 +44,23 @@ app.get('/api/fix-schema', async (req, res) => {
         const client = await db.pool.connect();
         try {
             await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS warehouse TEXT");
+
+            // Create Returns Table
+            await client.query(`CREATE TABLE IF NOT EXISTS returns (
+                id TEXT PRIMARY KEY,
+                return_number TEXT UNIQUE NOT NULL,
+                reference_invoice TEXT,
+                entity_name TEXT,
+                type TEXT CHECK(type IN ('Credit Note', 'Debit Note')),
+                amount DECIMAL(15,2),
+                reason TEXT,
+                status TEXT DEFAULT 'Pending',
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
             await client.query("NOTIFY pgrst, 'reload config'");
-            res.json({ success: true, message: "Added warehouse column and reloaded cache." });
+            res.json({ success: true, message: "Applied warehouse column, created returns table, and reloaded cache." });
         } finally {
             client.release();
         }

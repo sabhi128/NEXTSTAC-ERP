@@ -1147,7 +1147,8 @@ dbAdapter.inventory = {
     // --- Warehouses ---
     getWarehouses: async () => {
         if (isVercel) {
-            const { data, error } = await supabase.from('warehouses').select('*').order('created_at', { ascending: false });
+            // Sort by name or ID, as created_at might not exist
+            const { data, error } = await supabase.from('warehouses').select('*').neq('status', 'Deleted').order('name', { ascending: true });
             if (error) throw new Error(error.message);
             return data;
         } else {

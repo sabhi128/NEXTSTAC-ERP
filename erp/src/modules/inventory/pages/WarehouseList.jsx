@@ -77,7 +77,7 @@ export default function WarehouseList() {
         setFormData({
             name: wh.name,
             location: wh.location,
-            capacity: wh.capacity ? String(wh.capacity).replace(' units', '') : ''
+            capacity: wh.capacity || ''
         });
         setIsModalOpen(true);
     };
@@ -92,7 +92,7 @@ export default function WarehouseList() {
         e.preventDefault();
         const data = {
             ...formData,
-            capacity: formData.capacity + ' units'
+            capacity: formData.capacity // Submit raw number, backend expects integer
         };
 
         if (selectedWarehouse) {

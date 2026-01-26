@@ -74,10 +74,13 @@ export default function InvoiceList() {
     });
 
     const addInvoiceMutation = useMutation({
-        mutationFn: (data) => new Promise(resolve => setTimeout(() => resolve(mockDataService.addInvoice(data)), 300)),
+        mutationFn: async (data) => await api.post('/finance/invoices', data),
         onSuccess: () => {
             queryClient.invalidateQueries(['invoices']);
             setShowForm(false);
+        },
+        onError: (error) => {
+            alert(`Failed to create invoice: ${error.message}`);
         }
     });
 

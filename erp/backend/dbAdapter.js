@@ -1992,27 +1992,35 @@ dbAdapter.purchasing = {
         }
     },
     updateVendor: async (id, updates) => {
+        const mapField = (key, val) => {
+            if (key === 'companyName') return ['company_name', val];
+            if (key === 'contactPerson') return ['contact_person', val];
+            if (key === 'email') return ['email', val];
+            if (key === 'phone') return ['phone', val];
+            if (key === 'address') return ['address', val];
+            if (key === 'rating') return ['rating', val];
+            if (key === 'status') return ['status', val];
+            return null;
+        };
+
+        const mapped = {};
+        for (const [key, val] of Object.entries(updates)) {
+            const result = mapField(key, val);
+            if (result) mapped[result[0]] = result[1];
+        }
+
+        if (Object.keys(mapped).length === 0) return { id, ...updates };
+
         if (isVercel) {
             const client = supabaseAdmin || supabase;
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'companyName') mapped.company_name = val;
-                else if (key === 'contactPerson') mapped.contact_person = val;
-                else mapped[key] = val;
-            }
             const { error } = await client.from('vendors').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
             return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates);
-                if (keys.length === 0) return resolve({});
-                const fields = keys.map((key) => {
-                    if (key === 'companyName') return 'company_name = ?';
-                    if (key === 'contactPerson') return 'contact_person = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
+                const keys = Object.keys(mapped);
+                const values = Object.values(mapped);
+                const fields = keys.map(k => `${k} = ?`);
                 values.push(id);
                 db.run(`UPDATE vendors SET ${fields.join(', ')} WHERE id = ?`, values, function (err) {
                     if (err) reject(err);

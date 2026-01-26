@@ -45,10 +45,6 @@ export default function WarehouseList() {
         },
     });
 
-    if (error) {
-        console.error('DEBUG: React Query Error:', error);
-        return <div className="p-8 text-center text-red-500">Error loading warehouses: {error.message}</div>;
-    }
 
     const addWarehouseMutation = useMutation({
         mutationFn: (newWarehouse) => api.post('/inventory/warehouses', newWarehouse),
@@ -122,6 +118,10 @@ export default function WarehouseList() {
     );
 
     if (isLoading) return <div className="p-8 text-center text-slate-400">Loading warehouses...</div>;
+    if (error) {
+        console.error('DEBUG: React Query Error:', error);
+        return <div className="p-8 text-center text-red-500">Error loading warehouses: {error.message}</div>;
+    }
 
     return (
         <motion.div

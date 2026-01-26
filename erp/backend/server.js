@@ -37,8 +37,12 @@ app.get('/api/fix-schema', async (req, res) => {
         // poolWrapper has { pool, all, get, run }
 
         // Use db.pool to get a client from the pg Pool
+        // Use db.pool to get a client from the pg Pool
         if (!db.pool) {
-            return res.status(500).json({ error: "Database pool not found on db object." });
+            return res.status(500).json({
+                error: "Database pool not found. Please ensure 'DATABASE_URL' is added to your Vercel Environment Variables.",
+                tip: "The connection string should look like: postgres://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT].supabase.co:5432/postgres" // Tip for user
+            });
         }
 
         const client = await db.pool.connect();

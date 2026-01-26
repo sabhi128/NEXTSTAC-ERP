@@ -2456,8 +2456,8 @@ dbAdapter.system = {
 
 
 
-// --- Finance Operations ---
-dbAdapter.finance = {
+// --- Finance Operations (Returns Extension) ---
+Object.assign(dbAdapter.finance, {
     // Returns (Credit/Debit Notes)
     getReturns: async () => {
         if (isVercel) {
@@ -2551,6 +2551,6 @@ dbAdapter.finance = {
             });
         }
     }
-};
+});
 
 export default dbAdapter;

@@ -372,6 +372,24 @@ export const updateReturnStatus = async (req, res) => {
     }
 };
 
+export const updateReturn = async (req, res) => {
+    try {
+        const result = await dbAdapter.finance.updateReturn(req.params.id, req.body);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteReturn = async (req, res) => {
+    try {
+        await dbAdapter.finance.deleteReturn(req.params.id);
+        res.json({ message: 'Deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const deleteAllReturns = async (req, res) => {
     try {
         await dbAdapter.finance.deleteAllReturns();

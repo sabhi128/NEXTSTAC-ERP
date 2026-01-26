@@ -29,6 +29,7 @@ const Returns = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [editId, setEditId] = useState(null); // Track item being edited
     const [formData, setFormData] = useState({
         entityName: '',
         referenceInvoice: '',
@@ -51,6 +52,23 @@ const Returns = () => {
             setFormData({ entityName: '', referenceInvoice: '', amount: '', reason: 'Damaged Goods' });
         },
         onError: (err) => alert(`Failed to add return: ${err.message}`)
+    });
+
+    const updateReturnMutation = useMutation({
+        mutationFn: async ({ id, data }) => await api.patch(`/finance/returns/${id}`, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['returns']);
+            setIsModalOpen(false);
+            setEditId(null);
+            setFormData({ entityName: '', referenceInvoice: '', amount: '', reason: 'Damaged Goods' });
+        },
+        onError: (err) => alert(`Failed to update return: ${err.message}`)
+    });
+
+    const deleteReturnMutation = useMutation({
+        mutationFn: async (id) => await api.delete(`/finance/returns/${id}`),
+        onSuccess: () => queryClient.invalidateQueries(['returns']),
+        onError: (err) => alert(`Failed to delete return: ${err.message}`)
     });
 
     const updateStatusMutation = useMutation({
@@ -93,15 +111,38 @@ const Returns = () => {
         processedCount: filteredReturns?.filter(r => r.status === 'Processed' || r.status === 'Approved').length || 0
     };
 
+    const handleEdit = (ret) => {
+        setEditId(ret.id);
+        setFormData({
+            entityName: ret.entityName,
+            referenceInvoice: ret.referenceInvoice,
+            amount: ret.amount,
+            reason: ret.reason
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleCreate = () => {
+        setEditId(null);
+        setFormData({ entityName: '', referenceInvoice: '', amount: '', reason: 'Damaged Goods' });
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        addReturnMutation.mutate({
+        const payload = {
             entityName: formData.entityName,
             referenceInvoice: formData.referenceInvoice,
             amount: parseFloat(formData.amount),
             reason: formData.reason,
             type: activeTab === 'credit' ? 'Credit Note' : 'Debit Note'
-        });
+        };
+
+        if (editId) {
+            updateReturnMutation.mutate({ id: editId, data: payload });
+        } else {
+            addReturnMutation.mutate(payload);
+        }
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-400 font-medium animate-pulse">Loading returns...</div>;
@@ -115,7 +156,7 @@ const Returns = () => {
                     <div className="bg-slate-900/95 backdrop-blur-2xl w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-700/50 animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-5 bg-slate-900/50 border-b border-slate-700/50 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-white">
-                                Create {activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}
+                                {editId ? 'Edit Return' : `Create ${activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}`}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors group">
                                 <X className="w-5 h-5 text-slate-400 group-hover:text-white" />
@@ -168,13 +209,13 @@ const Returns = () => {
                                 </div>
                             </div>
                             <button
-                                type="submit" disabled={addReturnMutation.isPending}
+                                type="submit" disabled={addReturnMutation.isPending || updateReturnMutation.isPending}
                                 className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg hover:shadow-indigo-500/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
                             >
-                                {addReturnMutation.isPending ? 'Processing...' : (
+                                {addReturnMutation.isPending || updateReturnMutation.isPending ? 'Processing...' : (
                                     <>
                                         <Check className="w-5 h-5" />
-                                        Create {activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}
+                                        {editId ? 'Update Return' : `Create ${activeTab === 'credit' ? 'Credit Note' : 'Debit Note'}`}
                                     </>
                                 )}
                             </button>
@@ -201,7 +242,7 @@ const Returns = () => {
                             </button>
                         )}
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={handleCreate}
                             className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98]"
                         >
                             <Plus className="w-5 h-5" />
@@ -346,19 +387,41 @@ const Returns = () => {
                                                 ${ret.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => updateStatusMutation.mutate({ id: ret.id, status: getNextStatus(ret.status) })}
-                                                    className={clsx(
-                                                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase border transition-all active:scale-95 cursor-pointer",
-                                                        ret.status === 'Approved' || ret.status === 'Processed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' :
-                                                            ret.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20' :
-                                                                'bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700'
-                                                    )}
-                                                    title="Click to cycle status"
-                                                >
-                                                    {ret.status === 'Approved' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                                    {ret.status}
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => updateStatusMutation.mutate({ id: ret.id, status: getNextStatus(ret.status) })}
+                                                        className={clsx(
+                                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase border transition-all active:scale-95 cursor-pointer",
+                                                            ret.status === 'Approved' || ret.status === 'Processed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' :
+                                                                ret.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20' :
+                                                                    'bg-slate-700/50 text-slate-300 border-slate-600 hover:bg-slate-700'
+                                                        )}
+                                                        title="Click to cycle status"
+                                                    >
+                                                        {ret.status === 'Approved' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                                        {ret.status}
+                                                    </button>
+                                                    <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
+                                                        <button
+                                                            onClick={() => handleEdit(ret)}
+                                                            className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-md transition-colors"
+                                                            title="Edit Return"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm('Delete this return permanently?')) {
+                                                                    deleteReturnMutation.mutate(ret.id);
+                                                                }
+                                                            }}
+                                                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                                            title="Delete Return"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -380,17 +443,37 @@ const Returns = () => {
                                         <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1 font-mono">{ret.returnNumber}</div>
                                         <div className="font-extrabold text-white text-lg">{ret.entityName}</div>
                                     </div>
-                                    <button
-                                        onClick={() => updateStatusMutation.mutate({ id: ret.id, status: getNextStatus(ret.status) })}
-                                        className={clsx(
-                                            "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase border transition-all active:scale-95",
-                                            ret.status === 'Approved' || ret.status === 'Processed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                ret.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                    'bg-slate-700/50 text-slate-300 border-slate-600'
-                                        )}
-                                    >
-                                        {ret.status}
-                                    </button>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <button
+                                            onClick={() => updateStatusMutation.mutate({ id: ret.id, status: getNextStatus(ret.status) })}
+                                            className={clsx(
+                                                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase border transition-all active:scale-95",
+                                                ret.status === 'Approved' || ret.status === 'Processed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                    ret.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                        'bg-slate-700/50 text-slate-300 border-slate-600'
+                                            )}
+                                        >
+                                            {ret.status}
+                                        </button>
+                                        <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
+                                            <button
+                                                onClick={() => handleEdit(ret)}
+                                                className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-md transition-colors"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (window.confirm('Delete this return permanently?')) {
+                                                        deleteReturnMutation.mutate(ret.id);
+                                                    }
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-sm border-y border-slate-700/50 py-4">
                                     <div>

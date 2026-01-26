@@ -2521,6 +2521,59 @@ Object.assign(dbAdapter.finance, {
         }
     },
 
+    updateReturn: async (id, updates) => {
+        if (isVercel) {
+            const mapped = {};
+            // Map frontend keys to DB column names if disparate, for these they match mostly
+            for (const [key, val] of Object.entries(updates)) {
+                if (key === 'returnNumber') mapped.return_number = val;
+                else if (key === 'referenceInvoice') mapped.reference_invoice = val;
+                else if (key === 'entityName') mapped.entity_name = val;
+                else mapped[key] = val;
+            }
+            if (Object.keys(mapped).length === 0) return { id, ...updates };
+
+            const { error } = await supabase.from('finance_returns').update(mapped).eq('id', id);
+            if (error) throw new Error(error.message);
+            return { id, ...updates };
+        } else {
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                if (keys.length === 0) return resolve({});
+
+                const fields = keys.map((key) => {
+                    if (key === 'returnNumber') return 'return_number = ?';
+                    if (key === 'referenceInvoice') return 'reference_invoice = ?';
+                    if (key === 'entityName') return 'entity_name = ?';
+                    return `${key} = ?`;
+                });
+                const values = keys.map(k => updates[k]);
+                values.push(id);
+
+                const sql = `UPDATE finance_returns SET ${fields.join(', ')} WHERE id = ?`;
+                db.run(sql, values, function (err) {
+                    if (err) reject(err);
+                    else resolve({ id, ...updates });
+                });
+            });
+        }
+    },
+
+    deleteReturn: async (id) => {
+        if (isVercel) {
+            const { error } = await supabase.from('finance_returns').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                db.run("DELETE FROM finance_returns WHERE id = ?", [id], (err) => {
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        }
+    },
+
     updateReturnStatus: async (id, status) => {
         if (isVercel) {
             const { error } = await supabase.from('finance_returns').update({ status }).eq('id', id);

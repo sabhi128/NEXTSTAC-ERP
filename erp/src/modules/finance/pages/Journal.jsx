@@ -79,7 +79,7 @@ export default function Journal() {
         }
     };
 
-    if (accountsLoading || transactionsLoading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
+
 
     // Data Processing: Group flat transactions into Double-Entry objects
     const processTransactions = (flatTransactions) => {
@@ -144,6 +144,8 @@ export default function Journal() {
     const latestEntryDate = processedTransactions.length > 0
         ? new Date(processedTransactions[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : '-';
+
+    if (accountsLoading || transactionsLoading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
 
     return (
         <div className="min-h-screen pb-20">

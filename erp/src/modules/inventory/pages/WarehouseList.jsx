@@ -30,10 +30,25 @@ export default function WarehouseList() {
         capacity: ''
     });
 
-    const { data: warehouses = [], isLoading } = useQuery({
+    const { data: warehouses = [], isLoading, error } = useQuery({
         queryKey: ['warehouses'],
-        queryFn: () => api.get('/inventory/warehouses').then(res => res.data),
+        queryFn: async () => {
+            console.log('DEBUG: Fetching warehouses...');
+            try {
+                const res = await api.get('/inventory/warehouses');
+                console.log('DEBUG: Warehouses fetched:', res.data);
+                return res.data;
+            } catch (err) {
+                console.error('DEBUG: Fetch error:', err);
+                throw err;
+            }
+        },
     });
+
+    if (error) {
+        console.error('DEBUG: React Query Error:', error);
+        return <div className="p-8 text-center text-red-500">Error loading warehouses: {error.message}</div>;
+    }
 
     const addWarehouseMutation = useMutation({
         mutationFn: (newWarehouse) => api.post('/inventory/warehouses', newWarehouse),

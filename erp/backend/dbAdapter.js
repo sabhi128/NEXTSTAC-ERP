@@ -1417,36 +1417,42 @@ dbAdapter.finance = {
     },
 
     updateInvoice: async (id, updates) => {
-        if (isVercel) {
-            const mapped = {};
-            for (const [key, val] of Object.entries(updates)) {
-                if (key === 'invoiceNumber') mapped.invoice_number = val;
-                else if (key === 'customer') mapped.customer_name = val;
-                else if (key === 'dueDate') mapped.due_date = val;
-                else if (key === 'itemsCount') mapped.items_count = val;
-                else mapped[key] = val;
+        // Define allowed columns and their mapping from frontend keys
+        const mapField = (key, val) => {
+            if (key === 'invoiceNumber') return ['invoice_number', val];
+            if (key === 'customer') return ['customer_name', val];
+            if (key === 'dueDate') return ['due_date', val];
+            if (key === 'itemsCount') return ['items_count', val];
+            if (key === 'totalAmount') return ['amount', val]; // Map totalAmount to amount
+            if (key === 'amount') return ['amount', val];
+            if (key === 'date') return ['date', val];
+            if (key === 'status') return ['status', val];
+            // If items is passed, update count if we can, otherwise ignore array
+            if (key === 'items' && Array.isArray(val)) return ['items_count', val.length];
+
+            return null; // Ignore other fields like cashDiscount, subtotal etc.
+        };
+
+        const mapped = {};
+        for (const [key, val] of Object.entries(updates)) {
+            const result = mapField(key, val);
+            if (result) {
+                const [dbCol, dbVal] = result;
+                mapped[dbCol] = dbVal;
             }
-            // Remove non-db fields if any
-            delete mapped.items;
+        }
 
-            if (Object.keys(mapped).length === 0) return { id, ...updates };
+        if (Object.keys(mapped).length === 0) return { id, ...updates };
 
+        if (isVercel) {
             const { error } = await supabase.from('invoices').update(mapped).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
             return new Promise((resolve, reject) => {
-                const keys = Object.keys(updates).filter(k => k !== 'items'); // Filter out items array
-                if (keys.length === 0) return resolve({});
-
-                const fields = keys.map((key) => {
-                    if (key === 'invoiceNumber') return 'invoice_number = ?';
-                    if (key === 'customer') return 'customer_name = ?';
-                    if (key === 'dueDate') return 'due_date = ?';
-                    if (key === 'itemsCount') return 'items_count = ?';
-                    return `${key} = ?`;
-                });
-                const values = keys.map(k => updates[k]);
+                const keys = Object.keys(mapped);
+                const values = Object.values(mapped);
+                const fields = keys.map(k => `${k} = ?`);
                 values.push(id);
 
                 const sql = `UPDATE invoices SET ${fields.join(', ')} WHERE id = ?`;

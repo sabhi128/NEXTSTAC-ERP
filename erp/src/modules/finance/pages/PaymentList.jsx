@@ -36,9 +36,10 @@ export default function PaymentList() {
 
     const queryClient = useQueryClient();
 
-    const { data: payments, isLoading } = useQuery({
+    const { data: payments = [], isLoading, isError } = useQuery({
         queryKey: ['payments'],
-        queryFn: mockDataService.getPayments,
+        queryFn: async () => await api.get('/finance/payments'),
+        refetchOnWindowFocus: true
     });
 
     const addPaymentMutation = useMutation({
@@ -132,6 +133,7 @@ export default function PaymentList() {
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-400 font-medium animate-pulse">Loading payments...</div>;
+    if (isError) return <div className="p-8 text-center text-red-400 font-medium">Failed to load payments. Please refresh the page.</div>;
 
     return (
         <div className="min-h-screen relative">

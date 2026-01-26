@@ -12,18 +12,22 @@ export default function Reports() {
     const [activeTab, setActiveTab] = useState('summary');
     const [dateRange, setDateRange] = useState('all'); // all, month
 
-    const { data: accounts, isLoading: accountsLoading } = useQuery({
+    const { data: accounts = [], isLoading: accountsLoading, isError: accError } = useQuery({
         queryKey: ['accounts'],
-        queryFn: mockDataService.getAccounts,
+        queryFn: async () => await api.get('/finance/accounts'),
     });
 
-    const { data: transactions, isLoading: transactionsLoading } = useQuery({
+    const { data: transactions = [], isLoading: transactionsLoading, isError: txError } = useQuery({
         queryKey: ['transactions'],
-        queryFn: mockDataService.getTransactions,
+        queryFn: async () => await api.get('/finance/transactions'),
     });
 
     if (accountsLoading || transactionsLoading) {
         return <div className="p-12 text-center text-slate-400 animate-pulse font-medium">Loading Financial Reports...</div>;
+    }
+
+    if (accError || txError) {
+        return <div className="p-12 text-center text-red-400 font-medium">Failed to load report data. Please refresh.</div>;
     }
 
     // Filter transactions based on dateRange

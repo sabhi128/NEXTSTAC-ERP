@@ -27,14 +27,24 @@ export default function InvoiceList() {
 
     const queryClient = useQueryClient();
 
-    const { data: invoices, isLoading } = useQuery({
+    // Use direct API call for consistency and better error handling
+    const { data: invoices = [], isLoading, isError } = useQuery({
         queryKey: ['invoices'],
-        queryFn: mockDataService.getInvoices,
+        queryFn: async () => await api.get('/finance/invoices'),
+        refetchOnWindowFocus: true
     });
 
-    const { data: products } = useQuery({
+    // Products can still use mock service if needed, or switch to api also
+    const { data: products = [] } = useQuery({
         queryKey: ['products'],
-        queryFn: mockDataService.getProducts,
+        queryFn: async () => {
+            try {
+                return await mockDataService.getProducts();
+            } catch (e) {
+                console.warn("Failed to load products", e);
+                return [];
+            }
+        },
     });
 
     const deleteInvoiceMutation = useMutation({
@@ -88,6 +98,7 @@ export default function InvoiceList() {
 
 
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading invoices...</div>;
+    if (isError) return <div className="p-8 text-center text-red-400">Failed to load invoices. Please refresh the page.</div>;
 
     return (
         <div className="min-h-screen">

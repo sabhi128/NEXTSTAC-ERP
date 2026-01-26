@@ -36,8 +36,9 @@ export default function WarehouseList() {
             console.log('DEBUG: Fetching warehouses...');
             try {
                 const res = await api.get('/inventory/warehouses');
-                console.log('DEBUG: Warehouses fetched:', res.data);
-                return res.data;
+                console.log('DEBUG: Warehouses fetched:', res);
+                // API returns the array directly, or fallback to empty array
+                return Array.isArray(res) ? res : (res.data || []);
             } catch (err) {
                 console.error('DEBUG: Fetch error:', err);
                 throw err;

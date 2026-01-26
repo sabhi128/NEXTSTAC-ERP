@@ -81,12 +81,68 @@ export default function Journal() {
 
     if (accountsLoading || transactionsLoading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
 
+    // Data Processing: Group flat transactions into Double-Entry objects
+    const processTransactions = (flatTransactions) => {
+        if (!flatTransactions) return [];
+
+        // 1. Group by Reference
+        const groups = {};
+        flatTransactions.forEach(t => {
+            const ref = t.reference || t.id; // Fallback if no reference
+            if (!groups[ref]) groups[ref] = [];
+            groups[ref].push(t);
+        });
+
+        // 2. Convert Groups to Journal Entries
+        const journalEntries = Object.values(groups).map(group => {
+            // If it's a single orphan record, try to display it as best as possible
+            if (group.length === 1) {
+                const t = group[0];
+                return {
+                    id: t.id,
+                    date: t.date,
+                    description: t.description,
+                    amount: t.amount,
+                    debitAccount: { name: t.category }, // Assume simple entry shows as Debit for now
+                    creditAccount: null
+                };
+            }
+
+            // If we have pairs (or more), try to infer Debit vs Credit
+            // Backend `getTransactions` sorts by created_at DESC.
+            // Creation order: Debit Record -> Credit Record.
+            // DESC Sort -> Credit Record (Index 0) -> Debit Record (Index 1).
+
+            // Heuristic A: Trust Sort Order (Credit first, then Debit)
+            const creditLeg = group[0];
+            const debitLeg = group[1];
+
+            // Heuristic B: Verify with types if possible (Optional refinement)
+            // e.g. if debitLeg.type is 'Revenue', maybe swap? 
+            // But 'Bank Transfer' (Asset to Asset) makes types ambiguous.
+            // Let's stick to Sort Order Assumption first as it's deterministic based on controller code.
+
+            return {
+                id: debitLeg.id, // Use debit ID as main
+                date: debitLeg.date,
+                description: debitLeg.description,
+                amount: debitLeg.amount,
+                debitAccount: { name: debitLeg.category },
+                creditAccount: { name: creditLeg.category }
+            };
+        });
+
+        // 3. Sort Entries by date desc
+        return journalEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+    };
+
+    const processedTransactions = React.useMemo(() => processTransactions(transactions || []), [transactions]);
+
     // Stats Calculation
-    const sortedTransactions = [...(transactions || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const totalEntries = sortedTransactions.length;
-    const totalValue = sortedTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
-    const latestEntryDate = sortedTransactions.length > 0
-        ? new Date(sortedTransactions[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const totalEntries = processedTransactions.length;
+    const totalValue = processedTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    const latestEntryDate = processedTransactions.length > 0
+        ? new Date(processedTransactions[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : '-';
 
     return (
@@ -156,7 +212,7 @@ export default function Journal() {
                 </div>
 
                 {/* Journal Table */}
-                <GeneralJournal transactions={transactions || []} />
+                <GeneralJournal transactions={processedTransactions || []} />
             </div>
             <ConfirmationModal
                 isOpen={deleteModalOpen}

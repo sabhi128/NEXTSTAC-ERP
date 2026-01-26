@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, DollarSign, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
-export default function PayrollModal({ isOpen, onClose, onRunPayroll, totalEmployees }) {
+export default function PayrollModal({ isOpen, onClose, onRunPayroll, totalEmployees, employees = [] }) {
     const [step, setStep] = useState('summary'); // summary, processing, success
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     if (!isOpen) return null;
+
+    // Calculate estimated total based on actual salaries
+    const estimatedTotal = employees.reduce((sum, emp) => {
+        // Use employee salary or default to 5000 (matching backend logic)
+        const salary = Number(emp.salary) || 5000;
+        return sum + salary;
+    }, 0);
 
     const handleRun = async () => {
         setStep('processing');
@@ -69,7 +76,7 @@ export default function PayrollModal({ isOpen, onClose, onRunPayroll, totalEmplo
                                 <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
                                     <span className="font-medium text-slate-700">Estimated Total</span>
                                     <span className="font-bold text-indigo-600 text-lg">
-                                        ${(totalEmployees * 4500).toLocaleString()} <span className="text-xs text-slate-400 font-normal">(approx)</span>
+                                        ${estimatedTotal.toLocaleString()} <span className="text-xs text-slate-400 font-normal">(approx)</span>
                                     </span>
                                 </div>
                             </div>

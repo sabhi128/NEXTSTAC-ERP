@@ -332,6 +332,7 @@ export default function PayrollList() {
                 onClose={() => setIsModalOpen(false)}
                 onRunPayroll={handleConfirmRun}
                 totalEmployees={employees?.length || 0}
+                employees={employees || []}
             />
 
             <ConfirmationModal

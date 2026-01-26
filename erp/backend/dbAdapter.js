@@ -1147,8 +1147,9 @@ dbAdapter.inventory = {
     // --- Warehouses ---
     getWarehouses: async () => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             // Sort by name or ID, as created_at might not exist
-            const { data, error } = await supabase.from('warehouses').select('*').neq('status', 'Deleted').order('name', { ascending: true });
+            const { data, error } = await client.from('warehouses').select('*').neq('status', 'Deleted').order('name', { ascending: true });
             if (error) throw new Error(error.message);
             return data;
         } else {
@@ -1162,6 +1163,7 @@ dbAdapter.inventory = {
     },
     addWarehouse: async (warehouse) => {
         if (isVercel) {
+            const client = supabaseAdmin || supabase;
             const payload = {
                 id: warehouse.id,
                 name: warehouse.name,
@@ -1169,7 +1171,7 @@ dbAdapter.inventory = {
                 capacity: warehouse.capacity,
                 status: warehouse.status
             };
-            const { error } = await supabase.from('warehouses').insert([payload]);
+            const { error } = await client.from('warehouses').insert([payload]);
             if (error) throw new Error(error.message);
             return warehouse;
         } else {
@@ -1184,7 +1186,8 @@ dbAdapter.inventory = {
     },
     updateWarehouse: async (id, updates) => {
         if (isVercel) {
-            const { error } = await supabase.from('warehouses').update(updates).eq('id', id);
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('warehouses').update(updates).eq('id', id);
             if (error) throw new Error(error.message);
             return { id, ...updates };
         } else {
@@ -1203,7 +1206,9 @@ dbAdapter.inventory = {
     },
     deleteWarehouse: async (id) => {
         if (isVercel) {
-            const { error } = await supabase.from('warehouses').delete().eq('id', id);
+            const client = supabaseAdmin || supabase;
+            // Soft delete by setting status to 'Deleted'
+            const { error } = await client.from('warehouses').update({ status: 'Deleted' }).eq('id', id);
             if (error) throw new Error(error.message);
             return true;
         } else {
@@ -1217,7 +1222,8 @@ dbAdapter.inventory = {
     },
     deleteAllWarehouses: async () => {
         if (isVercel) {
-            const { error } = await supabase.from('warehouses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            const client = supabaseAdmin || supabase;
+            const { error } = await client.from('warehouses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
             if (error) throw new Error(error.message);
             return true;
         } else {

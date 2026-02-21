@@ -77,7 +77,6 @@ const refreshSession = async () => {
  */
 export const apiRequest = async (endpoint, options = {}) => {
     let token = await getAuthToken();
-    console.log(`[API DEBUG] Request to ${endpoint} with token: ${token ? token.substring(0, 10) + '...' : 'NONE'}`);
 
     const getHeaders = (authToken) => {
         const headers = {
